@@ -1,10 +1,53 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Global Parents</title><style>
-:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#172333;background:#f5f7fb}*{box-sizing:border-box}main{max-width:820px;margin:32px auto;padding:24px;background:white;border-radius:18px;box-shadow:0 8px 32px #14233a12}h1{margin:0;font-size:28px}p{color:#526071}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}label{display:block;font-weight:650;margin:16px 0 6px}input,select,textarea{width:100%;padding:12px;border:1px solid #c7d0dc;border-radius:9px;font:inherit}textarea{min-height:200px;line-height:1.6}button{background:#244dd3;color:white;border:0;border-radius:9px;padding:12px 18px;font:inherit;cursor:pointer;margin-top:14px}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #8cb3ff}section{margin-top:22px}#translation{white-space:pre-wrap;background:#f4f6fb;padding:16px;border-radius:10px;line-height:1.7}#status{color:#185b35}small{color:#526071}@media(max-width:600px){main{margin:0;padding:18px;border-radius:0}.grid{grid-template-columns:1fr}}
-</style></head><body><main><h1>Global Parents</h1><p>学校への連絡文を作成する試作品です。送信は自動では行われません。</p><div class="grid"><div><label for="type">連絡の種類</label><select id="type"><option value="absence">欠席</option><option value="late">遅刻</option><option value="early">早退</option></select></div><div><label for="date">日付</label><input id="date" type="date"></div></div><div class="grid"><div><label for="name">子どもの名前（任意）</label><input id="name" maxlength="80" placeholder="例：Alex"></div><div><label for="time">予定時刻（遅刻・早退の場合）</label><input id="time" type="time"></div></div><section><label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea><button id="copy" type="button">英文をコピー</button> <span id="status" role="status" aria-live="polite"></span></section><section><h2>日本語訳（生成時の内容）</h2><div id="translation"></div><small>英文を手動で編集した場合、日本語訳は自動更新されません。送信前に内容を確認してください。</small></section><p><small>このページはブラウザ内で文章を組み立てます。入力内容の保存や学校への送信は行いません。</small></p></main><script>
-const $=id=>document.getElementById(id);const type=$('type'),date=$('date'),name=$('name'),time=$('time'),english=$('english'),translation=$('translation'),status=$('status');
-const localDate=new Date();const yyyy=localDate.getFullYear(),mm=String(localDate.getMonth()+1).padStart(2,'0'),dd=String(localDate.getDate()).padStart(2,'0');date.value=`${yyyy}-${mm}-${dd}`;
-function formatDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return {en:'the specified date',ja:'指定日'};const [y,m,d]=s.split('-').map(Number);const dt=new Date(y,m-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d)return {en:'the specified date',ja:'指定日'};return {en:dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),ja:`${y}年${m}月${d}日`}}
-function generate(){status.textContent='';const n=name.value.trim();const safe=n||'My child';const jaName=n||'子ども';const d=formatDate(date.value);const t=time.value;let subject,body,japanese;if(type.value==='absence'){subject='Absence Notification';body=`${safe} will be absent from school on ${d.en}. Please let me know if there is anything we should prepare for their return.`;japanese=`${jaName}は${d.ja}に学校を欠席します。復帰に向けて準備することがあれば教えてください。`;}else if(type.value==='late'){subject='Late Arrival Notification';body=`${safe} will arrive late to school on ${d.en}${t?` at approximately ${t}`:''}. Thank you for your understanding.`;japanese=`${jaName}は${d.ja}に遅刻します${t?`（到着予定時刻：${t}）`:''}。ご理解ありがとうございます。`;}else{subject='Early Departure Notification';body=`${safe} will need to leave school early on ${d.en}${t?` at approximately ${t}`:''}. Please let me know if any arrangements are needed.`;japanese=`${jaName}は${d.ja}に早退する必要があります${t?`（早退予定時刻：${t}）`:''}。必要な手続きがあれば教えてください。`;}english.value=`Subject: ${subject}\n\nHello,\n\n${body}\n\nThank you.`;translation.textContent=`件名：${type.options[type.selectedIndex].text}\n\nこんにちは。\n\n${japanese}\n\nよろしくお願いいたします。`}
-[type,date,name,time].forEach(el=>el.addEventListener('input',generate));$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(english.value);status.textContent='コピーしました';}catch(e){english.focus();english.select();status.textContent='自動コピーできませんでした。Ctrl+Cでコピーしてください。';}});generate();
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Parents</title>
+<style>
+:root{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#172b43;background:#f4f7fb}*{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:35px auto;padding:28px;background:white;border-radius:16px;box-shadow:0 6px 24px #172b4310}h1{margin:0 0 10px;color:#183b65}p{line-height:1.6}.intro{color:#52657b}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}label{font-weight:650;display:block;margin:16px 0 7px}input,select,textarea{width:100%;padding:12px;border:1px solid #bdc9d7;border-radius:9px;font:inherit;background:#fff}textarea{min-height:175px;resize:vertical;line-height:1.6}.short{min-height:90px}.hint{font-size:13px;color:#52657b}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}button{padding:12px 18px;border:0;border-radius:9px;background:#2367c2;color:white;font-weight:650;cursor:pointer}button.secondary{background:#e5edf8;color:#183b65}.status{min-height:24px;color:#245e39;font-size:14px}.notice{padding:12px 15px;border-radius:9px;background:#eef5ff;color:#264c78;margin-top:20px}@media(max-width:600px){main{margin:0;padding:18px;border-radius:0}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Global Parents</h1>
+<p class="intro">英語が苦手な保護者のための、学校への連絡文作成ツールです。</p>
+<p class="notice">これは試作品です。英文は送信前に必ず確認してください。学校への送信は自動では行われません。</p>
+<div class="grid"><div><label for="type">連絡の種類</label><select id="type"><option value="absence">欠席</option><option value="late">遅刻</option><option value="early">早退</option><option value="health">体調不良</option><option value="question">先生への質問</option><option value="meeting">面談依頼</option><option value="thanks">お礼の連絡</option></select></div><div><label for="date">日付</label><input type="date" id="date"></div></div>
+<div class="grid"><div><label for="name">子どもの名前（任意）</label><input id="name" placeholder="例：Alex" autocomplete="off"></div><div id="timeWrap"><label for="time">予定時刻（遅刻・早退の場合）</label><input type="time" id="time"></div></div>
+<div id="detailWrap" hidden><label for="detail" id="detailLabel">連絡内容</label><textarea class="short" id="detail" placeholder="日本語で入力してください"></textarea><p class="hint" id="detailHint"></p></div>
+<label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea>
+<div class="actions"><button id="copy">英文をコピー</button><button id="regenerate" class="secondary">英文を再作成</button></div><p class="status" id="status" aria-live="polite"></p>
+<label for="japanese">日本語訳（確認用）</label><textarea id="japanese" readonly></textarea>
+<p class="hint">※ 質問・面談依頼・お礼などの自由入力は、自動翻訳ではありません。英語の定型文に内容を反映するには、ご自身で英文を編集してください。</p>
+</main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const type=$('type'),date=$('date'),name=$('name'),time=$('time'),detail=$('detail'),english=$('english'),japanese=$('japanese'),status=$('status');
+const now=new Date();date.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+const configs={
+ absence:{subject:'Absence Notification',ja:'欠席の連絡',label:'',hint:''},
+ late:{subject:'Late Arrival Notification',ja:'遅刻の連絡',label:'',hint:''},
+ early:{subject:'Early Departure Notification',ja:'早退の連絡',label:'',hint:''},
+ health:{subject:'Health Update',ja:'体調についての連絡',label:'体調について伝えたいこと（任意）',hint:'例：今日は少し咳があります。※日本語の内容は自動翻訳されません。'},
+ question:{subject:'Question About School',ja:'先生への質問',label:'先生に聞きたいこと（任意）',hint:'日本語でメモできます。英語の質問文は英文欄で編集してください。'},
+ meeting:{subject:'Request for a Meeting',ja:'面談のお願い',label:'相談したい内容（任意）',hint:'日本語でメモできます。英語の具体的な相談内容は英文欄で編集してください。'},
+ thanks:{subject:'Thank You',ja:'お礼の連絡',label:'お礼を伝えたいこと（任意）',hint:'日本語でメモできます。英語の具体的なお礼は英文欄で編集してください。'}
+};
+function dates(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return {en:'the selected date',ja:'指定した日'};const [y,m,d]=s.split('-').map(Number),dt=new Date(y,m-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d)return {en:'the selected date',ja:'指定した日'};return {en:dt.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),ja:`${y}年${m}月${d}日`};}
+function safeName(s){return s.trim().replace(/[\r\n\t]+/g,' ').slice(0,100)}
+function updateVisibility(){const t=type.value;const needsTime=t==='late'||t==='early';$('timeWrap').hidden=!needsTime;$('detailWrap').hidden=!['health','question','meeting','thanks'].includes(t);$('detailLabel').textContent=configs[t].label;$('detailHint').textContent=configs[t].hint;}
+function generate(){status.textContent='';const t=type.value,c=configs[t],n=safeName(name.value),who=n||'My child',whoJa=n||'子ども',d=dates(date.value),tm=time.value,at=tm?` at approximately ${tm}`:'',atJa=tm?`${tm}ごろに`:'';let en='',ja='';
+if(t==='absence'){en=`${who} will be absent from school on ${d.en}. Please let me know if there is anything we should prepare for their return.`;ja=`${whoJa}は${d.ja}に学校を欠席します。登校再開に向けて準備することがあれば教えてください。`;}
+if(t==='late'){en=`${who} will arrive late to school on ${d.en}${at}. Thank you for your understanding.`;ja=`${whoJa}は${d.ja}${atJa}学校に遅れて到着する予定です。ご理解ありがとうございます。`;}
+if(t==='early'){en=`${who} will need to leave school early on ${d.en}${at}. Please let me know if any arrangements are needed.`;ja=`${whoJa}は${d.ja}${atJa}早退する必要があります。必要な手続きがあれば教えてください。`;}
+if(t==='health'){en=`I would like to share a health update about ${n||'my child'} for ${d.en}. Please let me know if there is anything I should keep in mind.`;ja=`${d.ja}の${whoJa}の体調についてお伝えしたいことがあります。注意すべきことがあれば教えてください。`;}
+if(t==='question'){en=`I have a question regarding ${n||'my child'}'s school life. Could you please help me with it when you have a moment?`;ja=`${whoJa}の学校生活について質問があります。お時間のあるときに教えていただけますか。`;}
+if(t==='meeting'){en=`I would like to request a meeting to discuss ${n||'my child'}'s school experience. Could you please let me know a convenient time?`;ja=`${whoJa}の学校生活について相談するため、面談をお願いしたいです。ご都合のよい日時を教えていただけますか。`;}
+if(t==='thanks'){en=`Thank you for your continued support and care for ${n||'my child'}. I truly appreciate your help.`;ja=`${whoJa}への日頃のサポートとご配慮に感謝しています。いつもありがとうございます。`;}
+english.value=`Subject: ${c.subject}\n\nHello,\n\n${en}\n\nThank you.`;
+japanese.value=`件名：${c.ja}\n\nこんにちは。\n\n${ja}\n\nありがとうございます。`;
+if(detail.value.trim()&&['health','question','meeting','thanks'].includes(t)){status.textContent='入力した日本語の詳細は英文へ自動翻訳されません。英文欄を編集してください。';}
+}
+type.addEventListener('change',()=>{updateVisibility();generate()});[date,name,time].forEach(el=>el.addEventListener('input',generate));detail.addEventListener('input',()=>{if(detail.value.trim())status.textContent='日本語の詳細は自動翻訳されません。英文欄を編集してください。';else status.textContent='';});$('regenerate').addEventListener('click',generate);$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(english.value);status.textContent='英文をコピーしました。';}catch(e){english.focus();english.select();status.textContent='コピーできませんでした。英文を選択したので Ctrl + C でコピーしてください。';}});updateVisibility();generate();
 </script></body></html>
