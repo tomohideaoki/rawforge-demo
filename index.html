@@ -73,4 +73,8 @@ type.addEventListener('change',()=>{updateVisibility();generate()});[date,name,t
     alert('コピーできませんでした。ブラウザの設定を確認してください。');
   }
 });
+ $('english').addEventListener('input', () => {
+  japanese.value = '英文が編集されました。日本語訳は更新されていません。';
+});
+ 
 </script></body></html>
