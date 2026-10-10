@@ -15,6 +15,8 @@
 <div class="grid"><div><label for="type">連絡の種類</label><select id="type"><option value="absence">欠席</option><option value="late">遅刻</option><option value="early">早退</option><option value="health">体調不良</option><option value="question">先生への質問</option><option value="meeting">面談依頼</option><option value="thanks">お礼の連絡</option></select></div><div><label for="date">日付</label><input type="date" id="date"></div></div>
 <div class="grid"><div><label for="name">子どもの名前（任意）</label><input id="name" placeholder="例：Alex" autocomplete="off"></div><div id="timeWrap"><label for="time">予定時刻（遅刻・早退の場合）</label><input type="time" id="time"></div></div>
 <div id="detailWrap" hidden><label for="detail" id="detailLabel">連絡内容</label><textarea class="short" id="detail" placeholder="日本語で入力してください"></textarea><p class="hint" id="detailHint"></p></div>
+ <label for="freeText">学校に伝えたいこと（日本語で自由入力）</label><textarea id="freeText" rows="4" placeholder="例：昨日から熱があり、今日は病院へ行くため欠席します。"></textarea>
+
 <label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea>
 <div class="actions"><button id="copy">英文をコピー</button><button id="regenerate" class="secondary">英文を再作成</button></div><p class="status" id="status" aria-live="polite"></p>
 <label for="japanese">日本語訳（確認用）</label><textarea id="japanese" readonly></textarea>
@@ -23,7 +25,9 @@
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
-const type=$('type'),date=$('date'),name=$('name'),time=$('time'),detail=$('detail'),english=$('english'),japanese=$('japanese'),status=$('status');
+const freeText = $('freeText');
+
+ const type=$('type'),date=$('date'),name=$('name'),time=$('time'),detail=$('detail'),english=$('english'),japanese=$('japanese'),status=$('status');
 const now=new Date();date.value=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
 const configs={
  absence:{subject:'Absence Notification',ja:'欠席の連絡',label:'',hint:''},
