@@ -1,5 +1,20 @@
-# RAWFORGE Demo
+# Global Parents
 
-School communication assistant for parents.
+英語が苦手な保護者のための、学校への連絡文作成ツールです。
 
-This repository contains the public demo of RAWFORGE.
+## できること
+
+- 学校への欠席連絡
+- 遅刻の連絡
+- 早退の連絡
+- 英文の作成・編集・コピー
+
+## Global Parentsについて
+
+英語に自信がなくても、安心して学校とコミュニケーションできる環境を目指しています。
+
+現在は試作品です。作成された英文は送信前に必ず確認してください。
+
+## サイトはこちら
+
+https://tomohideaoki.github.io/rawforge-demo/
