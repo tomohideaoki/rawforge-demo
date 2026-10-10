@@ -17,7 +17,7 @@
 <div id="detailWrap" hidden><label for="detail" id="detailLabel">連絡内容</label><textarea class="short" id="detail" placeholder="日本語で入力してください"></textarea><p class="hint" id="detailHint"></p></div>
  <label for="freeText">学校に伝えたいこと（日本語で自由入力）</label><textarea id="freeText" rows="4" placeholder="例：昨日から熱があり、今日は病院へ行くため欠席します。"></textarea>
 
-<button id="aiGenerate" type="button" disabled>AIで英文を作成（準備中）</button>
+<button id="aiGenerate" type="button">AIに渡す文章をコピー</button>
 
 <label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea>
 <div class="actions"><button id="copy">英文をコピー</button><button id="regenerate" class="secondary">英文を再作成</button></div><p class="status" id="status" aria-live="polite"></p>
@@ -59,4 +59,18 @@ japanese.value=`件名：${c.ja}\n\nこんにちは。\n\n${ja}\n\nありがと�
 if(detail.value.trim()&&['health','question','meeting','thanks'].includes(t)){status.textContent='入力した日本語の詳細は英文へ自動翻訳されません。英文欄を編集してください。';}
 }
 type.addEventListener('change',()=>{updateVisibility();generate()});[date,name,time].forEach(el=>el.addEventListener('input',generate));detail.addEventListener('input',()=>{if(detail.value.trim())status.textContent='日本語の詳細は自動翻訳されません。英文欄を編集してください。';else status.textContent='';});$('regenerate').addEventListener('click',generate);$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(english.value);status.textContent='英文をコピーしました。';}catch(e){english.focus();english.select();status.textContent='コピーできませんでした。英文を選択したので Ctrl + C でコピーしてください。';}});updateVisibility();generate();
+ $('aiGenerate').addEventListener('click', async () => {
+  const message = freeText.value.trim();
+  if (!message) {
+    alert('先に日本語の文章を入力してください。');
+    return;
+  }
+  const prompt = '次の日本語を、学校の先生に送る丁寧で自然な英語にしてください。意味を変えず、情報を付け足さず、件名と英文を作成してください。\n\n' + message;
+  try {
+    await navigator.clipboard.writeText(prompt);
+    alert('AIに渡す文章をコピーしました。ChatGPTに貼り付けてください。');
+  } catch (error) {
+    alert('コピーできませんでした。ブラウザの設定を確認してください。');
+  }
+});
 </script></body></html>
