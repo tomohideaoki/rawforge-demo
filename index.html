@@ -41,7 +41,10 @@ const configs={
 function dates(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return {en:'the selected date',ja:'指定した日'};const [y,m,d]=s.split('-').map(Number),dt=new Date(y,m-1,d);if(dt.getFullYear()!==y||dt.getMonth()!==m-1||dt.getDate()!==d)return {en:'the selected date',ja:'指定した日'};return {en:dt.toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}),ja:`${y}年${m}月${d}日`};}
 function safeName(s){return s.trim().replace(/[\r\n\t]+/g,' ').slice(0,100)}
 function updateVisibility(){const t=type.value;const needsTime=t==='late'||t==='early';$('timeWrap').hidden=!needsTime;$('detailWrap').hidden=!['health','question','meeting','thanks'].includes(t);$('detailLabel').textContent=configs[t].label;$('detailHint').textContent=configs[t].hint;}
-function generate(){status.textContent='';const t=type.value,c=configs[t],n=safeName(name.value),who=n||'My child',whoJa=n||'子ども',d=dates(date.value),tm=time.value,at=tm?` at approximately ${tm}`:'',atJa=tm?`${tm}ごろに`:'';let en='',ja='';
+freeText.addEventListener('input', () => {
+  status.textContent = '日本語の自由入力は、まだ自動英訳に対応していません。';
+});
+ function generate(){status.textContent='';const t=type.value,c=configs[t],n=safeName(name.value),who=n||'My child',whoJa=n||'子ども',d=dates(date.value),tm=time.value,at=tm?` at approximately ${tm}`:'',atJa=tm?`${tm}ごろに`:'';let en='',ja='';
 if(t==='absence'){en=`${who} will be absent from school on ${d.en}. Please let me know if there is anything we should prepare for their return.`;ja=`${whoJa}は${d.ja}に学校を欠席します。登校再開に向けて準備することがあれば教えてください。`;}
 if(t==='late'){en=`${who} will arrive late to school on ${d.en}${at}. Thank you for your understanding.`;ja=`${whoJa}は${d.ja}${atJa}学校に遅れて到着する予定です。ご理解ありがとうございます。`;}
 if(t==='early'){en=`${who} will need to leave school early on ${d.en}${at}. Please let me know if any arrangements are needed.`;ja=`${whoJa}は${d.ja}${atJa}早退する必要があります。必要な手続きがあれば教えてください。`;}
