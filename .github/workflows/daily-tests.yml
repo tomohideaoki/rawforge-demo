@@ -1,0 +1,44 @@
+name: Global Parents tests
+
+on:
+  schedule:
+    # 21:17 UTC = 06:17 Asia/Tokyo the next day.
+    - cron: '17 21 * * *'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: global-parents-tests-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Application regression tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Run regression tests
+        run: node --test tests/*.test.cjs
+      - name: Write execution summary
+        if: always()
+        env:
+          TEST_RESULT: ${{ job.status }}
+        run: |
+          {
+            echo '## Global Parents daily tests'
+            echo "Result: $TEST_RESULT"
+            echo 'Command: node --test tests/*.test.cjs'
+            echo 'No AI API, deployment, or repository write is used.'
+          } >> "$GITHUB_STEP_SUMMARY"
