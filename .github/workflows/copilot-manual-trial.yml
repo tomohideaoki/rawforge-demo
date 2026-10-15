@@ -1,0 +1,72 @@
+name: Copilot manual trial (no schedule)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_free_only:
+        description: 'Confirm Copilot Free, remaining quota, no paid usage, and approval for this single AI trial'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: copilot-manual-trial
+  cancel-in-progress: false
+
+jobs:
+  trial:
+    if: github.repository == 'tomohideaoki/rawforge-demo' && inputs.confirm_free_only && vars.COPILOT_FREE_TRIAL_APPROVED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Verify credential is present without making an AI request
+        env:
+          TRIAL_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+        run: |
+          test -n "$TRIAL_TOKEN" || { echo 'Missing Copilot-only PAT; stop.'; exit 1; }
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Baseline tests and offline proposal validation tests
+        run: |
+          node --test tests/*.test.cjs
+          python3 tests/copilot-trial.test.py
+      - name: Install pinned CLI (does not run inference)
+        run: npm install --global @github/copilot@1.0.98
+      - name: Propose one bounded input improvement (single invocation; no retry)
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          COPILOT_FREE_TRIAL_APPROVED: ${{ vars.COPILOT_FREE_TRIAL_APPROVED }}
+        run: python3 scripts/copilot-trial.py
+      - name: Verify modified application and prepare patch
+        run: |
+          node --test tests/*.test.cjs
+          git diff --check
+          mkdir -p trial-output
+          git diff -- index.html > trial-output/proposal.patch
+          test -s trial-output/proposal.patch
+      - name: Save validated patch for review (never push or deploy)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: copilot-trial-proposal
+          path: trial-output/proposal.patch
+          retention-days: 1
+          if-no-files-found: error
+      - name: Execution summary
+        if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          {
+            echo '## Copilot manual trial'
+            echo "Result: $RESULT"
+            echo 'Task: add maxlength=100 to the child-name input only.'
+            echo 'No push, PR creation, merge, deployment, paid fallback, or schedule.'
+            echo 'Actual quota consumption must be checked in the Copilot account dashboard.'
+          } >> "$GITHUB_STEP_SUMMARY"
