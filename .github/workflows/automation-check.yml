@@ -1,0 +1,32 @@
+name: Automation readiness (no AI)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - index.html
+      - tests/**
+      - scripts/automation-check.cjs
+      - .github/workflows/automation-check.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-readiness-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    if: github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Test and report blockers without AI or secrets
+        run: node scripts/automation-check.cjs
