@@ -1,0 +1,26 @@
+name: Copilot token smoke preparation (no AI)
+
+on:
+  push:
+    branches:
+      - test/copilot-token-smoke-20261019
+    paths:
+      - '.github/copilot-smoke-trigger.txt'
+
+permissions: {}
+
+jobs:
+  verify-github-hosted-runner:
+    if: github.repository == 'tomohideaoki/rawforge-demo'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Verify safe branch event without credentials
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          test "$EVENT" = "push"
+          test "$REF" = "refs/heads/test/copilot-token-smoke-20261019"
+          echo "Safe branch-only smoke test completed."
+          echo "No AI, no API calls, no checkout, no artifact, no secret, no deployment."
