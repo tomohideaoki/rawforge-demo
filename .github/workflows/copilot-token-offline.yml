@@ -1,0 +1,29 @@
+name: Copilot GITHUB_TOKEN preparation (no AI)
+
+# Deliberately inert on this branch: workflow_dispatch only appears
+# on the default branch, and this file will NOT be merged to main.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_offline_only:
+        description: 'Offline safety inspection only. Does not invoke AI.'
+        type: boolean
+        required: true
+        default: false
+
+permissions: {}
+
+jobs:
+  offline-safety-review:
+    if: github.repository == 'tomohideaoki/rawforge-demo' && inputs.confirm_offline_only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Check event and repository (no checkout, no credentials)
+        env:
+          EVENT: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          test "$EVENT" = "workflow_dispatch"
+          test "$REPOSITORY" = "tomohideaoki/rawforge-demo"
+          echo 'Offline safety check only. No Copilot, no token access, no AI credits.'
