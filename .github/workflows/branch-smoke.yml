@@ -1,0 +1,23 @@
+name: Branch-only smoke test
+
+on:
+  push:
+    branches:
+      - test/actions-smoke
+
+permissions: {}
+
+jobs:
+  smoke:
+    if: github.repository == 'tomohideaoki/rawforge-demo'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - name: Verify branch push
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          test "$EVENT" = "push"
+          test "$REF" = "refs/heads/test/actions-smoke"
+          echo "Branch-only Actions verification passed."
