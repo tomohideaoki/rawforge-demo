@@ -1,0 +1,2 @@
+Approved one-time smoke test trigger, 2026-10-19.
+No AI, no API, no artifact, no deployment.
