@@ -41,7 +41,7 @@ node tools/quality-review-sheet.cjs docs/portable-school-workflow-v0.1.md > qual
 
 費用：今回のローカルテストとGitHubの文書・コード作成で追加料金の発生は確認していない。GitHub Actions・AI APIは実行していない。main、既存PR、公開サイト、Cloudflare、SNS、権限/Secret、外部アカウントには変更なし。
 
-## 追加：有料需要を調べるための非公開試作品
+## 追加：有料需要を調べるための未配布試作品
 - `prototypes/paid-demand-preview-20261024.html`：無料テンプレート方式（A）と、未提供のサイト内英訳・和訳方式（B）を比較する5問の質問票。氏名・学校名・児童情報・メールアドレスの入力欄は設けない。
 - 回答はブラウザから**端末内のCSVへ保存**するのみ。フォーム送信先、外部スクリプト、外部通信API、決済、申し込み受付はない。
 - ローカル静的検査：質問カテゴリ5つ、外部script/src/actionなし、fetch/XMLHttpRequest/sendBeaconなしを確認。**実ブラウザでの利用者テスト、配布、回答回収は未実施**。
