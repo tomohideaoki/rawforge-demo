@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Global Parents｜有料ニーズ確認用・非公開プレビュー</title>
+<style>body{font-family:system-ui,sans-serif;background:#f4f7fa;color:#19344b;margin:0}main{max-width:720px;margin:25px auto;padding:25px;background:white;border-radius:14px}fieldset{border:1px solid #cbd5e1;border-radius:10px;margin:15px 0;padding:15px}legend{font-weight:700}label{display:block;padding:6px 0}button{background:#1458a0;color:white;border:0;border-radius:8px;padding:12px 20px;font-size:16px}small{color:#53657a}</style></head><body><main>
+<h1>Global Parents</h1><p>英語が分からない日本人保護者のための、学校連絡文作成サポート。</p>
+<p><strong>このページは非公開の需要確認用試作品です。</strong>有料機能の販売・予約受付・決済はしていません。回答は外部送信されません。</p>
+<p>比較する案：A「英文テンプレートを無料で作成し、必要ならAIにコピーして翻訳」／B「日本語を入力してサイト内で英訳と確認用和訳まで完結」。Bは未提供です。</p>
+<form id="survey">
+<fieldset><legend>Q1 学校への英語連絡はどのくらいありますか？</legend><label><input type="radio" name="frequency" value="weekly" required> 週1回以上</label><label><input type="radio" name="frequency" value="monthly"> 月1〜3回</label><label><input type="radio" name="frequency" value="rare"> それ以下</label></fieldset>
+<fieldset><legend>Q2 いちばん困ることは？</legend><label><input type="radio" name="pain" value="writing" required> 英文を書くこと</label><label><input type="radio" name="pain" value="meaning"> 英文の意味を確認すること</label><label><input type="radio" name="pain" value="speed"> 時間がかかること</label><label><input type="radio" name="pain" value="other"> その他</label></fieldset>
+<fieldset><legend>Q3 どちらを使いたいですか？</legend><label><input type="radio" name="option" value="A" required> A：無料テンプレート＋コピー</label><label><input type="radio" name="option" value="B"> B：サイト内で英訳・確認用和訳</label><label><input type="radio" name="option" value="neither"> どちらも使わない</label></fieldset>
+<fieldset><legend>Q4 Bが安全に提供された場合、月額で利用したいですか？</legend><label><input type="radio" name="willingness" value="no" required> 有料なら利用しない</label><label><input type="radio" name="willingness" value="under500"> 月500円未満なら検討</label><label><input type="radio" name="willingness" value="500to999"> 月500〜999円なら検討</label><label><input type="radio" name="willingness" value="1000plus"> 月1,000円以上でも検討</label></fieldset>
+<fieldset><legend>Q5 使う前に最も確認したいことは？</legend><label><input type="radio" name="trust" value="accuracy" required> 翻訳の正確さ</label><label><input type="radio" name="trust" value="privacy"> 子どもの情報の扱い</label><label><input type="radio" name="trust" value="ease"> 使いやすさ</label><label><input type="radio" name="trust" value="price"> 価格</label></fieldset>
+<button type="submit">回答をこの端末にCSV保存（外部送信なし）</button>
+</form><p id="message" role="status"></p>
+<small>氏名・学校名・子どもの情報・メールアドレスは入力しない設計です。回答データはこのページから送信されません。実際の有料需要は利用意向だけで確定しません。</small>
+</main><script>
+'use strict';
+document.getElementById('survey').addEventListener('submit', event => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  const keys = ['frequency','pain','option','willingness','trust'];
+  const values = keys.map(key => String(data.get(key) || ''));
+  if (values.some(v => !v)) return;
+  const csv = keys.join(',') + '\n' + values.join(',') + '\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'global-parents-local-survey.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  document.getElementById('message').textContent = 'この端末にCSVを保存しました。外部送信はしていません。';
+});
+</script></body></html>
