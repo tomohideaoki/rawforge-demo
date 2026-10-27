@@ -92,7 +92,7 @@ translateButton.addEventListener('click', async () => {
   if (!GP_TRANSLATION_ENABLED) { status.textContent = 'サイト内のAI翻訳は準備中です。文章コピーをご利用ください。'; return; }
   if (translationPending) return;
   const text = freeText.value.trim();
-  if (!text || text.length > 1000) { status.textContent = '日本語を1〜1000文字で入力してください。'; return; }
+  if (!text || Array.from(text).length > 1000) { status.textContent = '日本語を1〜1000文字で入力してください。'; return; }
   if (!$('translationConsent').checked) { status.textContent = '翻訳サービスへの送信に同意してください。'; return; }
   const revision = translationRevision;
   translationPending = true;
