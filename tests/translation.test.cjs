@@ -58,7 +58,7 @@ test('Send only trimmed text using the shared Worker contract', async () => {
   assert.equal(url, 'https://global-parents-api.tomohide49aoki.workers.dev/');
   assert.equal(options.method, 'POST'); assert.equal(options.credentials, 'omit');
   assert.equal(options.redirect, 'error');
-  assert.deepEqual(JSON.parse(options.body), { text: '欠席します' });
+  assert.deepEqual(JSON.parse(options.body), { text: '欠席します', consent: true });
   assert.deepEqual(Object.keys(options.headers), ['Content-Type']);
   assert.ok(a.get('english').value.includes('My child will be absent'));
   assert.ok(a.get('japanese').value.includes('未作成'));
