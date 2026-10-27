@@ -67,6 +67,11 @@ test('Allow the 1000-character boundary', async () => {
   const a = setup(); a.get('freeText').value = 'あ'.repeat(1000); await a.run();
   assert.equal(a.calls.length, 1);
 });
+
+test('Allow 600 supplementary Unicode characters consistently with server gate', async () => {
+  const a = setup(); a.get('freeText').value = '😀'.repeat(600); await a.run();
+  assert.equal(a.calls.length, 1);
+});
 for (const code of [400, 401, 403, 429, 500]) {
   test(`HTTP ${code} preserves the current English and does not retry`, async () => {
     const a = setup({ transport: async () => ({ ok: false, status: code }) });
