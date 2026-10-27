@@ -17,7 +17,7 @@ export async function authorizeTranslation({
   }
   if (typeof reserve !== 'function') return deny(503, 'ATOMIC_STORE_NOT_CONFIGURED');
   if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return deny(503, 'INVALID_CLOCK');
-  // Intentional v2 contract: PR #4 currently sends only {text} and must be adapted before enabling.
+  // v2 contract: the original Draft PR #4 sent only {text}; this work branch adds consent:true.
   if (!payload || payload.consent !== true) return deny(400, 'CONSENT_REQUIRED');
   if (typeof payload.text !== 'string') return deny(400, 'TEXT_REQUIRED');
   const text = payload.text.trim();
