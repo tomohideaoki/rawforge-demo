@@ -105,7 +105,7 @@ translateButton.addEventListener('click', async () => {
       const response = await fetch(GP_TRANSLATION_ENDPOINT, {
         method: 'POST', credentials: 'omit', cache: 'no-store', redirect: 'error',
         referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }), signal: controller.signal
+        body: JSON.stringify({ text, consent: true }), signal: controller.signal
       });
       if (!response.ok) {
         const error = new Error('HTTP'); error.httpStatus = response.status; throw error;
