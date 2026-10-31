@@ -29,3 +29,10 @@
 翻訳品質は `docs/portable-school-workflow-v0.1.md` のQ01〜Q12で別途評価する。模擬応答は実翻訳ではなく、意味品質の合格を示さない。
 
 本番公開・AI実行・mainへのマージ・Secrets/権限変更は行わない。
+
+## 2026-10-31の差分検証
+
+- GitHub上の実ソースを取得し、隔離V8で `tests/translation-contract-consistency.test.cjs` の5項目を実行：**5件成功・0件失敗**。
+- 同じ実ソースの `authorizeTranslation` を隔離V8で実行し、同意・文字数・上限・保存層の障害・Unicode・日次予約の17条件を確認：**17件成功・0件失敗**。
+- これらは**Node.js全回帰テストの新規実行ではない**。前回の88件成功は2026-10-30の別ブランチのGitHub Actions実行記録。今回のブランチに対するActions実行は未確認。
+- Cloudflare本番Worker・AI・Pluginの実動作、料金・利用量、翻訳の意味品質は引き続き未検証。
