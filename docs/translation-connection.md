@@ -36,3 +36,10 @@
 - 同じ実ソースの `authorizeTranslation` を隔離V8で実行し、同意・文字数・上限・保存層の障害・Unicode・日次予約の17条件を確認：**17件成功・0件失敗**。
 - これらは**Node.js全回帰テストの新規実行ではない**。前回の88件成功は2026-10-30の別ブランチのGitHub Actions実行記録。今回のブランチに対するActions実行は未確認。
 - Cloudflare本番Worker・AI・Pluginの実動作、料金・利用量、翻訳の意味品質は引き続き未検証。
+
+## 2026-11-02：ブラウザCORSプリフライトのオフライン補完
+
+- 本番未接続の `experiments/mock-worker-handler.mjs` で、JSON POSTに先行するブラウザの `OPTIONS` プリフライトを模擬。許可するOriginは `https://tomohideaoki.github.io` の完全一致、許可メソッドは `POST`、許可リクエストヘッダーは `Content-Type` のみ。許可Originには成功・エラー応答とも `Access-Control-Allow-Origin` と `Vary: Origin` を付与し、未知のOriginは403かつCORS許可なし。プリフライトでは日次枠を消費しない。
+- `tests/mock-worker-cors.test.cjs` の9件は、許可/拒否/エラー時ヘッダー/日次予約/外部通信なしを検証する。実ブラウザのCORS実行、本番WorkerのCORS設定、Cloudflare接続は未検証。
+- **CORSは認証ではない**。Originなし・偽装Originのサーバー間リクエストはCORSだけでは防げない。利用者認証、Bot対策、日次の原子的な予算制御、モデル単価・出力上限・実アカウント無料枠の確認までは本番翻訳を有効化しない。
+- 公開HTMLの `GP_TRANSLATION_ENABLED=false`、main、Cloudflare、Secret、実AI呼び出しは変更しない。
