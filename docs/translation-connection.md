@@ -1,0 +1,45 @@
+# 翻訳接続の準備（本番AI・公開は停止）
+
+更新日：2026-10-31。対象：Draft PR #5 の作業ブランチを基準としたオフライン検証。元のDraft PR #4の契約と区別する。
+
+## 通信契約と履歴
+
+- 2026-10-14に共有された**旧Worker契約**：POST `{ "text": "日本語" }` → `{ "english": "英文" }`。**現行公開Workerがこの仕様かは未確認**。
+- 2026-10-30の**オフライン統合テスト用v2契約**：POST `{ "text": "日本語", "consent": true }` → `{ "english": "英文" }`。
+- フロントエンドの送信本文は `JSON.stringify({ text, consent: true })`。画面で送信同意を確認した場合のみ送る。Worker模擬ハンドラーも `payload.consent === true` を要求する。
+- `Content-Type: application/json`。入力はトリム後1〜1000 Unicodeコードポイント。400/401/403/429/500/503、JSON不正、通信失敗、15秒タイムアウトを失敗扱いにする。自動再試行なし。
+- **本番Workerのコード・CORS・認証・永続利用制限・実際のレスポンス・無料枠は未確認**。模擬テストが成功しても本番互換性を意味しない。
+
+## 停止状態と費用制限
+
+`index.html` の `GP_TRANSLATION_ENABLED` は `false` のまま。翻訳ボタンを押しても外部APIは呼ばれず、既存の文章コピー機能は使用できる。画面側の無効化は課金防止策ではなく、HTMLの書き換えも防げない。
+
+試作のサーバー側 `authorizeTranslation` は、明示的同意・入力長・日次上限・原子的な予約処理を確認し、永続ストア未設定時には拒否する。ただし模擬ハンドラーは**本番Workerではない**。日次のグローバル回数上限は乱用者による枠の使い切りを防がず、モデルの消費単価・超過課金を保証するものでもない。認証、不正利用対策、料金上限、利用量の監視を本番実装・確認するまでは有効化しない。
+
+## 利用者に見える範囲
+
+送信対象は自由入力欄 `freeText` の文字列のみ。名前・日付・種類・詳細などの別欄は自動送信しない。Cookie・認証ヘッダーは送らない。二重クリックや古い応答を抑止し、失敗時は既存英文を保持。成功結果は `textarea.value` に入れ、HTMLとして実行しない。
+
+現行APIは `english` のみ返す。**英文の確認用和訳は未実装**であり、既存の日本語入力を逆翻訳と偽って表示しない。英語が分からない保護者の利用には、この不足を解消し、意味保持を評価する必要がある。
+
+## 無料・オフライン検証
+
+`node --test tests/*.test.cjs`。実HTMLと模擬Workerの接続、同意、429、503、本文契約などを検証する。実AI・実Worker・本番Cloudflare・実ブラウザ・Pluginの動作は検証対象外。
+
+翻訳品質は `docs/portable-school-workflow-v0.1.md` のQ01〜Q12で別途評価する。模擬応答は実翻訳ではなく、意味品質の合格を示さない。
+
+本番公開・AI実行・mainへのマージ・Secrets/権限変更は行わない。
+
+## 2026-10-31の差分検証
+
+- GitHub上の実ソースを取得し、隔離V8で `tests/translation-contract-consistency.test.cjs` の5項目を実行：**5件成功・0件失敗**。
+- 同じ実ソースの `authorizeTranslation` を隔離V8で実行し、同意・文字数・上限・保存層の障害・Unicode・日次予約の17条件を確認：**17件成功・0件失敗**。
+- これらは**Node.js全回帰テストの新規実行ではない**。前回の88件成功は2026-10-30の別ブランチのGitHub Actions実行記録。今回のブランチに対するActions実行は未確認。
+- Cloudflare本番Worker・AI・Pluginの実動作、料金・利用量、翻訳の意味品質は引き続き未検証。
+
+## 2026-11-02：ブラウザCORSプリフライトのオフライン補完
+
+- 本番未接続の `experiments/mock-worker-handler.mjs` で、JSON POSTに先行するブラウザの `OPTIONS` プリフライトを模擬。許可するOriginは `https://tomohideaoki.github.io` の完全一致、許可メソッドは `POST`、許可リクエストヘッダーは `Content-Type` のみ。許可Originには成功・エラー応答とも `Access-Control-Allow-Origin` と `Vary: Origin` を付与し、未知のOriginは403かつCORS許可なし。プリフライトでは日次枠を消費しない。
+- `tests/mock-worker-cors.test.cjs` の9件は、許可/拒否/エラー時ヘッダー/日次予約/外部通信なしを検証する。実ブラウザのCORS実行、本番WorkerのCORS設定、Cloudflare接続は未検証。
+- **CORSは認証ではない**。Originなし・偽装Originのサーバー間リクエストはCORSだけでは防げない。利用者認証、Bot対策、日次の原子的な予算制御、モデル単価・出力上限・実アカウント無料枠の確認までは本番翻訳を有効化しない。
+- 公開HTMLの `GP_TRANSLATION_ENABLED=false`、main、Cloudflare、Secret、実AI呼び出しは変更しない。
