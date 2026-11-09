@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createTranslationPipeline} from '../experiments/translation-worker-pipeline.mjs';
+import {durableReservation} from '../experiments/translation-durable-adapter.mjs';
+function storage(){const data=new Map();let queue=Promise.resolve();return {data,transaction(fn){const p=queue.then(()=>fn({get:async k=>data.get(k),put:async(k,v)=>data.set(k,v)}));queue=p.catch(()=>{});return p;}}}
+const payload={text:'今日は欠席します',consent:true};
+const options={enabled:true,maxDailyRequests:10,maxDailyUnits:21,maxRequestUnits:7,now:()=>new Date('2026-11-09T01:00:00Z')};
+test('disabled pipeline never invokes translator or consumes quota',async()=>{let called=0;const s=storage();const h=createTranslationPipeline({...options,enabled:false,reserveBoth:durableReservation(s),translate:async()=>{called++;return 'ok'}});assert.equal((await h(payload)).status,503);assert.equal(called,0);assert.equal(s.data.size,0)});
+test('missing model dependency fails closed before quota consumption',async()=>{const s=storage();const h=createTranslationPipeline({...options,reserveBoth:durableReservation(s)});assert.equal((await h(payload)).status,503);assert.equal(s.data.size,0)});
+test('100 concurrent requests invoke model at most 3 times',async()=>{let called=0;const s=storage();const h=createTranslationPipeline({...options,reserveBoth:durableReservation(s),translate:async()=>{called++;return 'My child will be absent today.'}});const results=await Promise.all(Array.from({length:100},()=>h(payload)));assert.equal(results.filter(r=>r.status===200).length,3);assert.equal(results.filter(r=>r.status===429).length,97);assert.equal(called,3);assert.deepEqual(s.data.get('quota:2026-11-09'),{requests:3,units:21})});
+test('missing consent never calls model',async()=>{let called=0;const h=createTranslationPipeline({...options,reserveBoth:durableReservation(storage()),translate:async()=>{called++;return 'ok'}});assert.equal((await h({...payload,consent:false})).status,400);assert.equal(called,0)});
+test('model failure returns generic error without leaking user text',async()=>{const h=createTranslationPipeline({...options,reserveBoth:durableReservation(storage()),translate:async()=>{throw Error('secret')}});const r=await h(payload);assert.equal(r.status,503);assert.ok(!JSON.stringify(r).includes(payload.text));assert.ok(!JSON.stringify(r).includes('secret'))});
+test('invalid model output is rejected',async()=>{const h=createTranslationPipeline({...options,reserveBoth:durableReservation(storage()),translate:async()=>''});assert.equal((await h(payload)).status,502)});
