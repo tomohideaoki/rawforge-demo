@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createBilingualPipeline} from '../experiments/translation-bilingual-pipeline.mjs';
+const config={enabled:true,maxDailyRequests:3,maxDailyUnits:21,maxRequestUnits:7,now:()=>new Date('2026-11-12T00:00:00Z')};
+const good={english:'My child will be absent today.',japaneseBackTranslation:'子どもは今日欠席します。'};
+test('valid bilingual response is returned',async()=>{let calls=0;const p=createBilingualPipeline({...config,reserveBoth:async()=>true,translateBilingual:async()=>{calls++;return good}});assert.deepEqual(await p({text:'今日は欠席します',consent:true}),{status:200,body:good});assert.equal(calls,1)});
+test('missing Japanese translation fails without exposing English only',async()=>{const p=createBilingualPipeline({...config,reserveBoth:async()=>true,translateBilingual:async()=>({english:'Absent'})});assert.equal((await p({text:'欠席',consent:true})).status,502)});
+test('no consent blocks model',async()=>{let calls=0;const p=createBilingualPipeline({...config,reserveBoth:async()=>true,translateBilingual:async()=>{calls++;return good}});assert.equal((await p({text:'欠席'})).status,400);assert.equal(calls,0)});
+test('quota denial blocks model',async()=>{let calls=0;const p=createBilingualPipeline({...config,reserveBoth:async()=>false,translateBilingual:async()=>{calls++;return good}});assert.equal((await p({text:'欠席',consent:true})).status,429);assert.equal(calls,0)});
+test('disabled blocks model',async()=>{let calls=0;const p=createBilingualPipeline({...config,enabled:false,reserveBoth:async()=>true,translateBilingual:async()=>{calls++;return good}});assert.equal((await p({text:'欠席',consent:true})).status,503);assert.equal(calls,0)});
+test('missing model dependency fails closed',async()=>{const p=createBilingualPipeline({...config,reserveBoth:async()=>true});assert.equal((await p({text:'欠席',consent:true})).status,503)});
+test('model exception fails without leaking details',async()=>{const p=createBilingualPipeline({...config,reserveBoth:async()=>true,translateBilingual:async()=>{throw Error('secret')}});assert.deepEqual(await p({text:'欠席',consent:true}),{status:503,body:{error:'MODEL_UNAVAILABLE'}})});
