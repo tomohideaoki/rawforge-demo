@@ -1,0 +1,11 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { normalizeTranslationResponse as normalize } from '../experiments/translation-response-adapter.mjs';
+test('bilingual response accepted',()=>assert.deepEqual(normalize({english:' Hello ',japaneseBackTranslation:' こんにちは '}),{ok:true,english:'Hello',japaneseBackTranslation:'こんにちは'}));
+test('legacy response rejected by default',()=>assert.equal(normalize({english:'Hello'}).error,'BACK_TRANSLATION_MISSING'));
+test('legacy response accepted only with explicit compatibility setting',()=>assert.equal(normalize({english:'Hello'},{requireBackTranslation:false}).japaneseBackTranslation,null));
+test('missing English rejected',()=>assert.equal(normalize({japaneseBackTranslation:'こんにちは'}).error,'INVALID_ENGLISH'));
+test('empty back translation rejected',()=>assert.equal(normalize({english:'Hello',japaneseBackTranslation:' '}).ok,false));
+test('invalid response rejected',()=>assert.equal(normalize(null).ok,false));
+test('oversized output rejected',()=>assert.equal(normalize({english:'a'.repeat(2001),japaneseBackTranslation:'訳'}).ok,false));
+test('malformed optional back translation rejected',()=>assert.equal(normalize({english:'Hello',japaneseBackTranslation:42},{requireBackTranslation:false}).ok,false));
