@@ -1,0 +1,14 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createEntitlementGate} from '../experiments/subscription-entitlement-gate.mjs';
+const active={plan:'premium',status:'active',periodEnd:'2026-12-01T00:00:00Z'};
+const make=(opts={})=>createEntitlementGate({getEntitlement:async()=>active,reserveUsage:async()=>true,now:()=>new Date('2026-11-14T00:00:00Z'),...opts});
+test('valid premium admitted',async()=>assert.equal((await make()({userId:'u1',text:' 欠席します '})).text,'欠席します'));
+test('anonymous denied',async()=>assert.equal((await make()({text:'欠席'})).status,401));
+test('client supplied plan cannot bypass lookup',async()=>assert.equal((await make({getEntitlement:async()=>({plan:'free'})})({userId:'u',plan:'premium',text:'欠席'})).status,403));
+test('expired premium denied',async()=>assert.equal((await make({getEntitlement:async()=>({...active,periodEnd:'2026-11-01T00:00:00Z'})})({userId:'u',text:'欠席'})).status,403));
+test('cancelled subscription denied',async()=>assert.equal((await make({getEntitlement:async()=>({...active,status:'canceled'})})({userId:'u',text:'欠席'})).status,403));
+test('invalid input denied without reservation',async()=>{let n=0;const r=await make({reserveUsage:async()=>{n++;return true}})({userId:'u',text:' '});assert.equal(r.status,400);assert.equal(n,0)});
+test('usage cap denied',async()=>assert.equal((await make({reserveUsage:async()=>false})({userId:'u',text:'欠席'})).status,429));
+test('storage failure closed',async()=>assert.equal((await make({reserveUsage:async()=>{throw Error('db')}})({userId:'u',text:'欠席'})).status,503));
+test('missing server-side dependencies fail closed',async()=>assert.equal((await createEntitlementGate()({userId:'u',text:'欠席'})).status,503));
