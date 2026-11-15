@@ -1,0 +1,13 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createTranslationController} from '../experiments/launch-ui-controller.mjs';
+const input={text:'欠席します',consent:true};
+test('disabled by default, no network',async()=>{let calls=0;const f=createTranslationController({requestTranslation:async()=>{calls++}});assert.equal((await f(input)).ok,false);assert.equal(calls,0)});
+test('requires consent',async()=>{let calls=0;const f=createTranslationController({enabled:true,requestTranslation:async()=>{calls++}});assert.equal((await f({...input,consent:false})).ok,false);assert.equal(calls,0)});
+test('rejects empty input',async()=>{const f=createTranslationController({enabled:true,requestTranslation:async()=>({})});assert.equal((await f({...input,text:'  '})).ok,false)});
+test('rejects too long input',async()=>{const f=createTranslationController({enabled:true,requestTranslation:async()=>({})});assert.equal((await f({...input,text:'あ'.repeat(1001)})).ok,false)});
+test('rejects missing endpoint',async()=>{const f=createTranslationController({enabled:true});assert.equal((await f(input)).ok,false)});
+test('valid bilingual result',async()=>{const f=createTranslationController({enabled:true,requestTranslation:async()=>({english:'Absent.',japaneseBackTranslation:'欠席します。'})});const r=await f(input);assert.equal(r.ok,true);assert.equal(r.english,'Absent.')});
+test('rejects english only',async()=>{const f=createTranslationController({enabled:true,requestTranslation:async()=>({english:'Absent.'})});assert.equal((await f(input)).ok,false)});
+test('network failure does not fake result',async()=>{const f=createTranslationController({enabled:true,requestTranslation:async()=>{throw Error('offline')}});assert.equal((await f(input)).ok,false)});
+test('blocks concurrent duplicate request',async()=>{let release;const gate=new Promise(r=>release=r);const f=createTranslationController({enabled:true,requestTranslation:async()=>{await gate;return {english:'Hi',japaneseBackTranslation:'こんにちは'}}});const first=f(input);const second=await f(input);assert.equal(second.ok,false);release();assert.equal((await first).ok,true)});
