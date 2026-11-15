@@ -1,0 +1,12 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {createBudgetGate} from '../experiments/atomic-budget.mjs';
+const config={enabled:true,dailyRequests:2,dailyUnits:10,maxUnitsPerRequest:5,now:()=>new Date('2026-11-15T00:00:00Z')};
+test('admit and send server-side limits',async()=>{let p;const g=createBudgetGate({...config,reserve:async x=>(p=x,true)});assert.equal((await g({userId:'u',units:5})).status,200);assert.deepEqual(p,{userId:'u',day:'2026-11-15',units:5,dailyRequests:2,dailyUnits:10})});
+test('fail closed by default',async()=>assert.equal((await createBudgetGate()({userId:'u',units:1})).status,503));
+test('reject unauthenticated',async()=>assert.equal((await createBudgetGate({...config,reserve:async()=>true})({units:1})).status,401));
+test('reject over budget request',async()=>assert.equal((await createBudgetGate({...config,reserve:async()=>true})({userId:'u',units:6})).status,400));
+test('reject exhausted',async()=>assert.equal((await createBudgetGate({...config,reserve:async()=>false})({userId:'u',units:1})).status,429));
+test('reject invalid store response',async()=>assert.equal((await createBudgetGate({...config,reserve:async()=>undefined})({userId:'u',units:1})).status,503));
+test('reject storage errors',async()=>assert.equal((await createBudgetGate({...config,reserve:async()=>{throw Error('db')}})({userId:'u',units:1})).status,503));
+test('reject invalid limits',async()=>assert.equal((await createBudgetGate({...config,dailyUnits:0,reserve:async()=>true})({userId:'u',units:1})).status,503));
