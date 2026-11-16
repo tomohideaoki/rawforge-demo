@@ -26,7 +26,11 @@
 
 <div id="translationConsentWrap" hidden><label><input type="checkbox" id="translationConsent" style="width:auto"> 入力内容を翻訳サービスへ送信することに同意します</label></div>
 <button id="translate" type="button" disabled>AI翻訳（準備中）</button>
-<button id="aiGenerate" type="button">AIに渡す文章をコピー</button>
+<div class="notice" id="premiumNotice">Premium（月額1,500円）は準備中です。AI英文作成・確認用和訳は現在利用できません。決済も行われません。</div>
+<label><input id="aiConsent" type="checkbox" style="width:auto"> 日本語の入力内容をAI処理に送信することに同意します（機能公開後のみ）</label>
+<button id="premiumTranslate" type="button" disabled aria-disabled="true">Premium AI英文作成（準備中）</button>
+<p class="status" id="premiumStatus" aria-live="polite">AI機能は現在停止しています。</p>
+<button id="aiGenerate" type="button" class="secondary">ChatGPT用の文章をコピー（無料）</button>
 <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">ChatGPTを開く ↗</a>
 <label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea>
 <div class="actions"><button id="copy">英文をコピー</button><button id="regenerate" class="secondary">英文を再作成</button></div><p class="status" id="status" aria-live="polite"></p>
@@ -166,5 +170,35 @@ translateButton.addEventListener('click', async () => {
   japanese.value = '英文が編集されました。日本語訳は更新されていません。';
 });
  
+</script>
+<script type="module">
+import {createTranslationController} from './experiments/launch-ui-controller.mjs';
+// Release gate: false until verified server auth, durable atomic budget, AI cost ceiling and payment checks.
+const PREMIUM_ENABLED = false;
+const endpoint = null; // Never configure production endpoint in a static preview.
+const button=document.getElementById('premiumTranslate');
+const status=document.getElementById('premiumStatus');
+const text=document.getElementById('freeText');
+const consent=document.getElementById('aiConsent');
+const english=document.getElementById('english');
+const japanese=document.getElementById('japanese');
+const controller=createTranslationController({
+  enabled:PREMIUM_ENABLED,
+  requestTranslation: endpoint ? async payload=>{
+    const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'omit',body:JSON.stringify(payload)});
+    if(!response.ok) throw Error('Translation unavailable');
+    return response.json();
+  } : undefined
+});
+button.disabled=!PREMIUM_ENABLED;
+button.addEventListener('click',async()=>{
+  const before=text.value,priorEnglish=english.value,priorJapanese=japanese.value;
+  const result=await controller({text:before,consent:consent.checked});
+  if(text.value!==before||english.value!==priorEnglish||japanese.value!==priorJapanese) {status.textContent='入力内容が変更されたため、結果を反映しません。';return;}
+  if(!result.ok){status.textContent=result.error;return;}
+  english.value=result.english;
+  japanese.value=result.japaneseBackTranslation;
+  status.textContent='英文と確認用日本語を作成しました。送信前に内容を確認してください。';
+});
 </script></body></html>
 
