@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+test('premium UI is disabled by default',()=>{assert.match(html,/const PREMIUM_ENABLED = false;/);assert.match(html,/id="premiumTranslate"[^>]*disabled/);assert.match(html,/const endpoint = null;/)});
+test('existing free template path preserved',()=>{assert.match(html,/function generate\(\)/);assert.match(html,/id="aiGenerate"/);assert.match(html,/id="copy"/)});
+test('requires explicit consent in UI',()=>{assert.match(html,/id="aiConsent"/);assert.match(html,/consent:consent.checked/)});
+test('controller wired without implicit fetch',()=>{assert.match(html,/createTranslationController/);assert.match(html,/button.addEventListener\('click'/);assert.match(html,/if\(!response.ok\) throw Error/)});
+test('never claims AI translation when disabled',()=>{assert.match(html,/AI機能は現在停止しています/);assert.match(html,/決済も行われません/)});
+test('stale response is not applied after edits',()=>{assert.match(html,/text.value!==before\|\|english.value!==priorEnglish\|\|japanese.value!==priorJapanese/)});
