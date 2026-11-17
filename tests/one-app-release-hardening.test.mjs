@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+test('one in-app AI button only',()=>{assert.equal((html.match(/id="premiumTranslate"/g)||[]).length,1);assert.doesNotMatch(html,/id="translate"/)});
+test('legacy English-only transport removed',()=>{assert.doesNotMatch(html,/GP_TRANSLATION_ENDPOINT|GP_TRANSLATION_ENABLED|translationConsentWrap/);assert.doesNotMatch(html,/日本語訳は未作成です/)});
+test('premium fail closed',()=>{assert.match(html,/const PREMIUM_ENABLED = false/);assert.match(html,/const endpoint = null/);assert.match(html,/disabled aria-disabled="true"/)});
+test('bilingual display uses validated controller',()=>{assert.match(html,/createTranslationController/);assert.match(html,/result\.japaneseBackTranslation/)});
+test('stale consent and input rejected',()=>{assert.match(html,/consent\.checked!==priorConsent/);assert.match(html,/text\.value!==before/)});
+test('no secret or live credential in static HTML',()=>{assert.doesNotMatch(html,/sk-proj-|STRIPE_SECRET_KEY|SUPABASE_SERVICE_ROLE_KEY/)});
