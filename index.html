@@ -24,8 +24,6 @@
 </select>
 <p class="hint">「AIに渡す文章をコピー」にだけ適用されます。コピーするのは自由入力欄の文章のみです。ChatGPTへの貼り付け・送信はご自身で行ってください。</p>
 
-<div id="translationConsentWrap" hidden><label><input type="checkbox" id="translationConsent" style="width:auto"> 入力内容を翻訳サービスへ送信することに同意します</label></div>
-<button id="translate" type="button" disabled>AI翻訳（準備中）</button>
 <div class="notice" id="premiumNotice">Premium（月額1,500円）は準備中です。AI英文作成・確認用和訳は現在利用できません。決済も行われません。</div>
 <label><input id="aiConsent" type="checkbox" style="width:auto"> 日本語の入力内容をAI処理に送信することに同意します（機能公開後のみ）</label>
 <button id="premiumTranslate" type="button" disabled aria-disabled="true">Premium AI英文作成（準備中）</button>
@@ -108,64 +106,8 @@ $('aiGenerate').addEventListener('click', async () => {
     alert('コピーできませんでした。ブラウザの設定を確認してください。');
   }
 });
-// Disabled until live AI execution and publication are explicitly approved.
-const GP_TRANSLATION_ENABLED = false;
-const GP_TRANSLATION_ENDPOINT = 'https://global-parents-api.tomohide49aoki.workers.dev/';
-const translateButton = $('translate');
-translateButton.disabled = !GP_TRANSLATION_ENABLED;
-$('translationConsentWrap').hidden = !GP_TRANSLATION_ENABLED;
-if (GP_TRANSLATION_ENABLED) translateButton.textContent = 'AIで英訳する';
-let translationPending = false, translationRevision = 0;
-[freeText, type, date, name, time, detail, english].forEach(el => {
-  ['input', 'change'].forEach(event => el.addEventListener(event, () => { translationRevision++; }));
-});
-$('regenerate').addEventListener('click', () => { translationRevision++; });
-$('translationConsent').addEventListener('change', () => { translationRevision++; });
-translateButton.addEventListener('click', async () => {
-  if (!GP_TRANSLATION_ENABLED) { status.textContent = 'サイト内のAI翻訳は準備中です。文章コピーをご利用ください。'; return; }
-  if (translationPending) return;
-  const text = freeText.value.trim();
-  if (!text || Array.from(text).length > 1000) { status.textContent = '日本語を1〜1000文字で入力してください。'; return; }
-  if (!$('translationConsent').checked) { status.textContent = '翻訳サービスへの送信に同意してください。'; return; }
-  const revision = translationRevision;
-  translationPending = true;
-  translateButton.disabled = true;
-  status.textContent = '翻訳しています。';
-  const controller = new AbortController();
-  let timer;
-  try {
-    const request = (async () => {
-      const response = await fetch(GP_TRANSLATION_ENDPOINT, {
-        method: 'POST', credentials: 'omit', cache: 'no-store', redirect: 'error',
-        referrerPolicy: 'no-referrer', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, consent: true }), signal: controller.signal
-      });
-      if (!response.ok) {
-        const error = new Error('HTTP'); error.httpStatus = response.status; throw error;
-      }
-      const data = await response.json();
-      if (!data || typeof data.english !== 'string' || !data.english.trim() || data.english.length > 20000) throw new Error('Invalid response');
-      return data.english.trim();
-    })();
-    const timeout = new Promise((_, reject) => {
-      timer = setTimeout(() => { const error = new Error('Timeout'); error.timedOut = true; reject(error); controller.abort(); }, 15000);
-    });
-    const translated = await Promise.race([request, timeout]);
-    if (revision !== translationRevision) { status.textContent = '入力が変更されたため翻訳結果を反映しませんでした。必要なら再度翻訳してください。'; return; }
-    english.value = translated;
-    japanese.value = 'AI翻訳の日本語訳は未作成です。送信前に英文の内容を確認してください。';
-    status.textContent = '英文を作成しました。学校への送信前に内容を確認してください。';
-  } catch (error) {
-    if (revision !== translationRevision) return;
-    status.textContent = error.timedOut ? '翻訳が時間切れになりました。自動再試行はしません。' :
-      error.httpStatus === 429 ? '翻訳の利用制限に達しました。自動再試行はしません。' :
-      '翻訳できませんでした。現在の英文は保持しています。文章コピーをご利用ください。';
-  } finally {
-    clearTimeout(timer);
-    translationPending = false;
-    translateButton.disabled = !GP_TRANSLATION_ENABLED;
-  }
-});
+// Premium AI translation is the only planned in-app translation path.
+
  $('english').addEventListener('input', () => {
   japanese.value = '英文が編集されました。日本語訳は更新されていません。';
 });
@@ -175,7 +117,7 @@ translateButton.addEventListener('click', async () => {
 import {createTranslationController} from './experiments/launch-ui-controller.mjs';
 // Release gate: false until verified server auth, durable atomic budget, AI cost ceiling and payment checks.
 const PREMIUM_ENABLED = false;
-const endpoint = null; // Never configure production endpoint in a static preview.
+const endpoint = null; // No production endpoint in a static preview; server auth and quota must be verified first.
 const button=document.getElementById('premiumTranslate');
 const status=document.getElementById('premiumStatus');
 const text=document.getElementById('freeText');
@@ -192,9 +134,9 @@ const controller=createTranslationController({
 });
 button.disabled=!PREMIUM_ENABLED;
 button.addEventListener('click',async()=>{
-  const before=text.value,priorEnglish=english.value,priorJapanese=japanese.value;
+  const before=text.value,priorEnglish=english.value,priorJapanese=japanese.value,priorConsent=consent.checked;
   const result=await controller({text:before,consent:consent.checked});
-  if(text.value!==before||english.value!==priorEnglish||japanese.value!==priorJapanese) {status.textContent='入力内容が変更されたため、結果を反映しません。';return;}
+  if(text.value!==before||english.value!==priorEnglish||japanese.value!==priorJapanese||consent.checked!==priorConsent) {status.textContent='入力内容が変更されたため、結果を反映しません。';return;}
   if(!result.ok){status.textContent=result.error;return;}
   english.value=result.english;
   japanese.value=result.japaneseBackTranslation;
