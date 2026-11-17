@@ -7,8 +7,12 @@ import {validateTranslationResponse} from './translation-response-contract.mjs';
  * All counters reserve worst-case units before any model invocation.
  */
 export function createLaunchGatedTranslation({authenticate,getEntitlement,reserveBudget,translateBilingual,enabled=false,now=()=>new Date(),dailyRequests=0,dailyUnits=0,maxUnitsPerRequest=0}={}) {
-  const entitlement=createEntitlementGate({getEntitlement,reserveUsage:async()=>true,now});
   const budget=createBudgetGate({reserve:reserveBudget,enabled,dailyRequests,dailyUnits,maxUnitsPerRequest,now});
+  const entitlement=createEntitlementGate({getEntitlement,now,reserveUsage:async({userId})=>{
+    const result=await budget({userId,units:maxUnitsPerRequest});
+    if(result.status===503) throw Error('Budget unavailable');
+    return result.allowed;
+  }});
   return async function handle(request) {
     const deny=(status,error)=>({status,body:{error}});
     if(!enabled) return deny(503,'DISABLED');
@@ -18,8 +22,6 @@ export function createLaunchGatedTranslation({authenticate,getEntitlement,reserv
     try {userId=await authenticate(request)} catch {return deny(401,'AUTH_REQUIRED')}
     const auth=await entitlement({userId,text:request.text});
     if(!auth.allowed) return deny(auth.status,auth.reason);
-    const limit=await budget({userId,units:maxUnitsPerRequest});
-    if(!limit.allowed) return deny(limit.status,limit.reason);
     try {
       const response=validateTranslationResponse(await translateBilingual(auth.text,{maxOutputTokens:256}));
       if(!response.ok) return deny(502,response.error);
