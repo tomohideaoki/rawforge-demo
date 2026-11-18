@@ -1,4 +1,4 @@
-import {createEntitlementGate} from './subscription-entitlement-gate.mjs';
+import {checkPremiumEntitlement} from './subscription-entitlement-gate.mjs';
 import {createBudgetGate} from './atomic-budget.mjs';
 import {validateTranslationResponse} from './translation-response-contract.mjs';
 /** Launch-gated offline composition. No API provider or real account/DB adapters.
@@ -7,7 +7,6 @@ import {validateTranslationResponse} from './translation-response-contract.mjs';
  * All counters reserve worst-case units before any model invocation.
  */
 export function createLaunchGatedTranslation({authenticate,getEntitlement,reserveBudget,translateBilingual,enabled=false,now=()=>new Date(),dailyRequests=0,dailyUnits=0,maxUnitsPerRequest=0}={}) {
-  const entitlement=createEntitlementGate({getEntitlement,reserveUsage:async()=>true,now});
   const budget=createBudgetGate({reserve:reserveBudget,enabled,dailyRequests,dailyUnits,maxUnitsPerRequest,now});
   return async function handle(request) {
     const deny=(status,error)=>({status,body:{error}});
@@ -16,7 +15,7 @@ export function createLaunchGatedTranslation({authenticate,getEntitlement,reserv
     if(typeof authenticate!=='function'||typeof getEntitlement!=='function'||typeof reserveBudget!=='function'||typeof translateBilingual!=='function') return deny(503,'DEPENDENCY_MISSING');
     let userId;
     try {userId=await authenticate(request)} catch {return deny(401,'AUTH_REQUIRED')}
-    const auth=await entitlement({userId,text:request.text});
+    const auth=await checkPremiumEntitlement({getEntitlement,now,userId,text:request.text});
     if(!auth.allowed) return deny(auth.status,auth.reason);
     const limit=await budget({userId,units:maxUnitsPerRequest});
     if(!limit.allowed) return deny(limit.status,limit.reason);
