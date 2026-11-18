@@ -14,3 +14,15 @@ export function createEntitlementGate({getEntitlement, reserveUsage, now=()=>new
     } catch { return {allowed:false,status:503,reason:'GATE_UNAVAILABLE'}; }
   };
 }
+
+/** Read-only eligibility check; usage must be reserved separately and atomically before model calls. */
+export async function checkPremiumEntitlement({getEntitlement,now=()=>new Date(),userId,text}={}) {
+  if(typeof userId!=='string'||!userId.trim()) return {allowed:false,status:401,reason:'AUTH_REQUIRED'};
+  if(typeof text!=='string'||!text.trim()||[...text.trim()].length>1000) return {allowed:false,status:400,reason:'INVALID_TEXT'};
+  if(typeof getEntitlement!=='function') return {allowed:false,status:503,reason:'GATE_UNAVAILABLE'};
+  try {
+    const ent=await getEntitlement(userId);
+    if(!ent||ent.plan!=='premium'||ent.status!=='active'||typeof ent.periodEnd!=='string'||!Number.isFinite(Date.parse(ent.periodEnd))||Date.parse(ent.periodEnd)<=now().getTime()) return {allowed:false,status:403,reason:'PREMIUM_REQUIRED'};
+    return {allowed:true,status:200,text:text.trim()};
+  } catch {return {allowed:false,status:503,reason:'GATE_UNAVAILABLE'};}
+}
