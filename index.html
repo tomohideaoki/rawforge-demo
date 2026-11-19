@@ -11,7 +11,7 @@
 <body><main>
 <h1>Global Parents</h1>
 <p class="intro">英語が分からない日本人保護者のための、学校への連絡文作成ツールです。</p>
-<p class="notice">これは試作品です。英文は送信前に必ず確認してください。学校への送信は自動では行われません。</p>
+<p class="notice">無料の定型文作成機能です。日本語の自由入力は自動英訳されません。英文は送信前に必ず確認してください。学校への送信は自動では行われません。</p>
 <div class="grid"><div><label for="type">連絡の種類</label><select id="type"><option value="absence">欠席</option><option value="late">遅刻</option><option value="early">早退</option><option value="health">体調不良</option><option value="question">先生への質問</option><option value="meeting">面談依頼</option><option value="thanks">お礼の連絡</option></select></div><div><label for="date">日付</label><input type="date" id="date"></div></div>
 <div class="grid"><div><label for="name">子どもの名前（任意）</label><input id="name" placeholder="例：Alex" autocomplete="off"></div><div id="timeWrap"><label for="time">予定時刻（遅刻・早退の場合）</label><input type="time" id="time"></div></div>
 <div id="detailWrap" hidden><label for="detail" id="detailLabel">連絡内容</label><textarea class="short" id="detail" placeholder="日本語で入力してください"></textarea><p class="hint" id="detailHint"></p></div>
@@ -24,7 +24,7 @@
 </select>
 <p class="hint">「AIに渡す文章をコピー」にだけ適用されます。コピーするのは自由入力欄の文章のみです。ChatGPTへの貼り付け・送信はご自身で行ってください。</p>
 
-<div class="notice" id="premiumNotice">Premium（月額1,500円）は準備中です。AI英文作成・確認用和訳は現在利用できません。決済も行われません。</div>
+<div class="notice" id="premiumNotice">Premium（月額1,500円・提供予定）は未提供です。AI英文作成・確認用和訳・会員登録・決済は利用できません。料金は発生しません。</div>
 <label><input id="aiConsent" type="checkbox" style="width:auto"> 日本語の入力内容をAI処理に送信することに同意します（機能公開後のみ）</label>
 <button id="premiumTranslate" type="button" disabled aria-disabled="true">Premium AI英文作成（準備中）</button>
 <p class="status" id="premiumStatus" aria-live="polite">AI機能は現在停止しています。</p>
@@ -33,7 +33,8 @@
 <label for="english">英文（編集できます）</label><textarea id="english" spellcheck="true"></textarea>
 <div class="actions"><button id="copy">英文をコピー</button><button id="regenerate" class="secondary">英文を再作成</button></div><p class="status" id="status" aria-live="polite"></p>
 <label for="japanese">日本語訳（確認用）</label><textarea id="japanese" readonly></textarea>
-<p class="hint">※ 質問・面談依頼・お礼などの自由入力は、自動翻訳ではありません。英語の定型文に内容を反映するには、ご自身で英文を編集してください。</p>
+<p class="hint">※ 自由入力した日本語は定型文へ反映されません。内容を反映するには英文を編集するか、ChatGPT用の文章をコピーして別途翻訳してください。氏名・病歴などの個人情報は入力前に必要性を確認してください。</p>
+<p class="hint">この無料ページでは会員登録・決済を受け付けません。入力した文章をこのページから学校やAI APIへ自動送信しません。「ChatGPTを開く」から移動した先では、そのサービスの利用条件が適用されます。</p>
 </main>
 <script>
 'use strict';
