@@ -20,3 +20,8 @@ test('free text does not silently enter English template',()=>{const {nodes}=mou
 test('premium disabled and no endpoint configured',()=>{assert.match(html,/const PREMIUM_ENABLED = false/);assert.match(html,/const endpoint = null/);assert.match(html,/id="premiumTranslate"[^>]*disabled/);});
 test('no automatic network call in free inline script',()=>{assert.doesNotMatch(script,/\bfetch\s*\(|XMLHttpRequest|sendBeacon/);});
 test('privacy and no-payment disclosures remain visible',()=>{assert.match(html,/児童の氏名・健康情報/);assert.match(html,/料金は発生しません/);});
+
+test('all seven free templates render bilingual text',()=>{const {nodes}=mount();for(const kind of ['absence','late','early','health','question','meeting','thanks']){nodes.get('type').value=kind;nodes.get('type').change();assert.match(nodes.get('english').value,/Subject:/);assert.match(nodes.get('japanese').value,/件名：/);}});
+test('editing English invalidates stale Japanese translation',()=>{const {nodes}=mount();nodes.get('english').value='Edited by parent';nodes.get('english').input();assert.match(nodes.get('japanese').value,/更新されていません/);});
+test('invalid calendar date is not silently normalized to a different date',()=>{const {nodes}=mount();nodes.get('date').value='2026-02-30';nodes.get('date').input();assert.match(nodes.get('english').value,/selected date/);});
+test('manual translation prompt preserves safety constraints',()=>{const {context}=mount();const prompt=vm.runInNewContext('buildManualTranslationPrompt("今日は欠席します","natural")',context);assert.match(prompt,/病名・理由・名前/);assert.match(prompt,/確認用和訳/);assert.match(prompt,/今日は欠席します/);});
