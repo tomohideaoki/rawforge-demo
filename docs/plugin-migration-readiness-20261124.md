@@ -191,3 +191,11 @@ OpenAIの公式FAQ（2026-11-24確認）では、Custom GPTの標準廃止日は
   - `d037512f07eed9b8d41e8ef3cdd4e166bcb6ccf8`：Launch gateへ利用者別上限を配線
   - `c326ce6abd3d1e1be945d6cf306f6e02293333dd`：Launch gateテスト追加
 - 追加費用、AI API、Cloudflare操作、デプロイ、main変更、Secret変更、決済は実施していない。
+
+### ローカル検証の再現性追記
+- テストを実行する前に、ローカルへ配置した各ファイルのGit blob hashをGitHubから取得した値と照合した。5ファイルすべて一致：`experiments/atomic-budget.mjs` `58dfa2bccdb0d8bd42f4ffdc1edd38dc998dc8bc`、`experiments/sqlite-budget-ledger.mjs` `80c07d7a90d1bc62c3dc7da5957d92eeed50fc82`、`tests/sqlite-budget-ledger.test.mjs` `ea4048202999ab37a5a600dca8d8c927b0f48fd3`、`experiments/launch-gated-translation.mjs` `c90f8caa8649b2c78a9641a6036651c4abeed195`、`tests/launch-gated-translation.test.mjs` `d3a5d7e682a05337c98a37be7e1e3cd8edc21cba`。
+- 上記一致を確認した後に同じ5ファイルに対し `node --test tests/sqlite-budget-ledger.test.mjs tests/launch-gated-translation.test.mjs` を実行：**23 pass / 0 fail**。Node.js v22.16.0。SQLiteはNode実験的APIのため警告が出る。
+- 別途、無料MVPのHTMLをローカルへ転記したコピーはGit blob hashがGitHubと一致しなかったため、ブラウザレスUIテストは今回の正式な検証結果に含めない。実HTMLのNode/ブラウザ回帰テストは未完了。
+- 予算台帳は、日次のグローバル/利用者別カウンター行を保持する。保持期限・削除/アーカイブ方針は未設計。本番化前に必要だが、この作業では原データ削除を行わない。
+- リクエスト再送/二重送信の冪等キーも未実装。現在は重複要求をそれぞれ予約としてカウントするため、上限は超えにくい一方、利用者の枠を余分に消費する可能性がある。
+- Neuronsの予約値は固定モデルと入出力上限を決めた後に保守的に算出しなければならない。現時点でモデルを選定しておらず、トークン/Neurons変換値や実消費量は一切設定していない。
