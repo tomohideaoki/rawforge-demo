@@ -66,8 +66,8 @@ test('one reservation increments global and per-user Neuron counters',async()=>{
     assert.deepEqual(await ask(a.gate,'user-a',25),{allowed:true,status:200});
     const g=a.db.prepare('SELECT used_requests,used_neurons FROM gp_budget_daily_global').get();
     const u=a.db.prepare('SELECT used_requests,used_neurons FROM gp_budget_daily_user').get();
-    assert.deepEqual(g,{used_requests:1,used_neurons:25});
-    assert.deepEqual(u,{used_requests:1,used_neurons:25});
+    assert.deepEqual({...g},{used_requests:1,used_neurons:25});
+    assert.deepEqual({...u},{used_requests:1,used_neurons:25});
   } finally {a.db.close();}
 });
 
@@ -121,7 +121,7 @@ test('parallel reservations cannot exceed global or per-user caps',async()=>{
     assert.equal(results.filter(r=>r.allowed).length,8);
     assert.equal(results.filter(r=>r.status===429).length,52);
     const global=a.db.prepare('SELECT used_requests,used_neurons FROM gp_budget_daily_global').get();
-    assert.deepEqual(global,{used_requests:8,used_neurons:80});
+    assert.deepEqual({...global},{used_requests:8,used_neurons:80});
     const users=a.db.prepare('SELECT used_requests,used_neurons FROM gp_budget_daily_user').all();
     assert.ok(users.every(u=>u.used_requests<=4 && u.used_neurons<=40));
   } finally {a.db.close();}
