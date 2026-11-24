@@ -23,3 +23,11 @@ test('store error: no model',async()=>{const a=setup({reserveBudget:async()=>{th
 test('invalid budget config: no model',async()=>{const a=setup({dailyUnits:0});assert.equal((await a.handler(req)).status,503);assert.equal(a.calls.model,0)});
 test('missing bilingual response rejected',async()=>{const a=setup({translateBilingual:async()=>({english:'Hello'})});assert.equal((await a.handler(req)).status,502)});
 test('missing adapter fails closed',async()=>{const a=setup({authenticate:null});assert.equal((await a.handler(req)).status,503);assert.equal(a.calls.model,0)});
+
+test('per-user limits reach the atomic reservation before model invocation',async()=>{
+  let used=0;const a=setup({perUserDailyRequests:1,perUserDailyUnits:100,
+    reserveBudget:async limits=>{assert.equal(limits.perUserDailyRequests,1);assert.equal(limits.perUserDailyUnits,100);if(used>=1)return false;used++;return true;}});
+  assert.equal((await a.handler(req)).status,200);
+  assert.equal((await a.handler(req)).status,429);
+  assert.equal(a.calls.model,1);
+});
