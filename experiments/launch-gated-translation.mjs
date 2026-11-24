@@ -6,8 +6,8 @@ import {validateTranslationResponse} from './translation-response-contract.mjs';
  * reserveBudget MUST atomically enforce per-user AND global daily ceilings.
  * All counters reserve worst-case units before any model invocation.
  */
-export function createLaunchGatedTranslation({authenticate,getEntitlement,reserveBudget,translateBilingual,enabled=false,now=()=>new Date(),dailyRequests=0,dailyUnits=0,maxUnitsPerRequest=0}={}) {
-  const budget=createBudgetGate({reserve:reserveBudget,enabled,dailyRequests,dailyUnits,maxUnitsPerRequest,now});
+export function createLaunchGatedTranslation({authenticate,getEntitlement,reserveBudget,translateBilingual,enabled=false,now=()=>new Date(),dailyRequests=0,dailyUnits=0,perUserDailyRequests=dailyRequests,perUserDailyUnits=dailyUnits,maxUnitsPerRequest=0}={}) {
+  const budget=createBudgetGate({reserve:reserveBudget,enabled,dailyRequests,dailyUnits,perUserDailyRequests,perUserDailyUnits,maxUnitsPerRequest,now});
   return async function handle(request) {
     const deny=(status,error)=>({status,body:{error}});
     if(!enabled) return deny(503,'DISABLED');
