@@ -20,7 +20,9 @@
 | 無料MVPの画面 | `index.html`、blob `3740ff5167a1680770d8146ca89f21d8039280b9`、既存ブランチ `test/free-mvp-launch-smoke-20261120` | 取得済み。AIフラグ無効、接続先null、無料の定型文と手動コピー |
 | 販売候補原稿 | `products/school-email-starter-guide-v0.1.md`、blob `dda5040257b4547d6bd8ab3501d61a6f6b925991`、ブランチ `product/school-email-guide-20261123` | 取得済み。20例文の原稿。商品完成・校正完了・販売開始ではない |
 | オフラインWorker形状の模擬実装 | `experiments/mock-worker-handler.mjs`、blob `62ebf0ffe785a969fb463f46c7d7f185b71b7155`、既存テストブランチ | 取得済み。実AI・外部fetchを使わず、成功応答は明示的な模擬文 |
-| 会員資格と利用予算のゲート | `experiments/launch-gated-translation.mjs`、`experiments/subscription-entitlement-gate.mjs`、`experiments/atomic-budget.mjs`、既存ブランチ `fix/one-app-entitlement-check-20261118` | 取得済み。依存注入式の試作。本番DB・認証・決済との接続はない |
+| 会員資格と利用予算のゲート | `experiments/launch-gated-translation.mjs`、`experiments/subscription-entitlement-gate.mjs`、`experiments/atomic-budget.mjs`、今回の作業ブランチ | 取得・修正済み。全体と利用者別の回数/Neurons上限を呼び出し元まで受け渡す。本番DB・認証・決済との接続はない |
+| SQLite予算台帳プロトタイプ | `experiments/sqlite-budget-ledger.mjs`、今回の作業ブランチ | 新規作成。SQLiteトランザクション内で全体と利用者別を同時予約。Cloudflare実機には未接続 |
+| 予算回帰テスト | `tests/sqlite-budget-ledger.test.mjs`、`tests/launch-gated-translation.test.mjs` | 新規/追加。ローカルNode+インメモリSQLiteで23件成功。Cloudflare実機・本番AIの検証ではない |
 | 既存カスタムGPTの設定・Knowledge・Actions | 本人アカウントのGPT編集画面またはエクスポート | **未取得**。推測で復元しない |
 | 学校独自ハンドブック・校則 | 学校が提供する現行資料 | 未取得。学校固有ルールを生成・断定しない |
 
@@ -107,8 +109,10 @@
 ### 現在の不足
 - 既存 `experiments/translation-quota.mjs` は日次の全体リクエスト数を確認する試作で、モデル使用量を管理しない。
 - 既存 `experiments/sqlite-reservation.mjs` は単一の全体リクエスト回数カウンターであり、ユーザー別上限・Neurons上限ではない。
-- 既存 `experiments/atomic-budget.mjs` は全体の回数・units引数を検査するインターフェースだが、従来版はユーザー別の明示的上限を渡しておらず、本番永続Storeもない。
-- 既存 `launch-gated-translation.mjs` は認証・契約確認・利用枠予約をモデル呼び出しより先に実行する依存注入の試作であり、本番Workerではない。
+- `experiments/atomic-budget.mjs` は今回、`perUserDailyRequests` と `perUserDailyUnits` を受け取り、予約アダプターへ渡すよう修正した。従来どおり本番永続Storeは未接続。
+- `experiments/launch-gated-translation.mjs` も利用者別上限を呼び出し元設定から `createBudgetGate` に渡すよう修正した。予約失敗時にモデルを呼ばない試作であり、本番Workerではない。
+- `experiments/sqlite-budget-ledger.mjs` を新設。SQLite-backed Durable Objectを想定し、UTC日単位で全体と利用者別のリクエスト数・Neurons予約を同じ同期トランザクション内で検査・更新する。利用者IDそのものは保存せず、サーバー側HMAC関数から受け取るダイジェストのみを保存する。単一の安定したグローバルDO IDに全リクエストを通すことが前提。
+- このプロトタイプはハッシュ関数の実装・Secret管理・本人認証を提供しない。テストでは合成IDに対するSHA-256を使い、raw IDが保存されないことだけを確認した。実装時はサーバー側SecretによるHMACを必須にする。日次台帳の古い行を保持する期間と掃除方法も、本番配線前に決める必要がある。
 
 ### 推奨構成
 1. Workers AIモデルを一つ選び、モデルID・入力/出力Neurons単価・最大入力トークン・最大出力トークンを固定。
@@ -171,3 +175,19 @@ OpenAIの公式FAQ（2026-11-24確認）では、Custom GPTの標準廃止日は
 - 既存のQ01〜Q12は再作成せず、Back-translation固有のQ13〜Q16のみ追加。
 - 既存GPTの非公開設定・KnowledgeはLibrary検索でも取得できず、未取得として記録。
 - 外部接続・モデル・決済・アカウントの操作なし。費用発生なし。
+
+## 11. 2026-11-24 追加実装・ローカル検証
+
+- `experiments/atomic-budget.mjs` を更新し、グローバルとユーザー別の最大日次リクエスト数・最大日次Neurons・1リクエスト最大Neuronsを別々に検証するようにした。
+- `experiments/launch-gated-translation.mjs` を更新し、ユーザー別上限を呼び出し元設定から予算ゲートへ受け渡すようにした。
+- `experiments/sqlite-budget-ledger.mjs` を追加。全体と利用者別の予約を一つのSQLite `transactionSync` 内で同時に行い、どちらかの上限を超えたら両方書き込まず拒否する。
+- `tests/sqlite-budget-ledger.test.mjs` に12ケース、`tests/launch-gated-translation.test.mjs` に利用者別上限の1ケースを追加。
+- ローカルNode.js v22.16.0、Node標準の実験的 `node:sqlite`、インメモリDBで `node --test tests/sqlite-budget-ledger.test.mjs tests/launch-gated-translation.test.mjs` を実行：**23件成功 / 0件失敗**。グローバル回数・Neurons上限、ユーザー別回数・Neurons上限、50件超の並列要求時の上限遵守、UTC日付切替、ユーザーIDの生保存なし、トランザクション途中の書込失敗で全件ロールバック、利用枠超過時にモデル関数を呼ばないことを確認。
+- これはNodeローカルのSQLiteアダプターによるオフラインテストであり、Cloudflare Durable Objects実機、実Worker、実アカウント、HMAC Secret、実AI、請求画面を検証していない。NodeのSQLite実装は実験的APIの警告を出す。**23件の成功を本番互換性・無料利用可能・AI翻訳品質の合格と扱わない。**
+- 今回の更新コミット：
+  - `0ba2d54945edf7aa522f1d37ff04f0c3293a4eb1`：利用者別予算ゲート
+  - `ee5ee9183b98eaaee10286af57f44d3716906ab8`：SQLite予算台帳
+  - `410e24e3612e22b23f52c490374aa439c65b585f`：SQLiteテストのNode行オブジェクト互換修正
+  - `d037512f07eed9b8d41e8ef3cdd4e166bcb6ccf8`：Launch gateへ利用者別上限を配線
+  - `c326ce6abd3d1e1be945d6cf306f6e02293333dd`：Launch gateテスト追加
+- 追加費用、AI API、Cloudflare操作、デプロイ、main変更、Secret変更、決済は実施していない。
