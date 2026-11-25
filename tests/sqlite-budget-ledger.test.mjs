@@ -18,6 +18,10 @@ function makeStorage({failUserWrite=false}={}) {
       if (normalized.startsWith('SELECT')) {
         return {toArray:()=>db.prepare(query).all(...bindings)};
       }
+      if (normalized.startsWith('DELETE')) {
+        db.prepare(query).run(...bindings);
+        return {toArray:()=>[]};
+      }
       if (normalized.startsWith('INSERT INTO GP_BUDGET_DAILY_USER') && state.failUserWrite) {
         state.failUserWrite=false;
         throw new Error('synthetic user-table write failure');
@@ -137,7 +141,7 @@ test('raw user identifier is never stored in quota table',async()=>{
   } finally {a.db.close();}
 });
 
-test('new UTC day has separate budget rows',async()=>{
+test('new UTC day has separate budget rows and old rows are removed',async()=>{
   let current='2026-11-24T23:59:00.000Z';
   const a=setup({now:()=>new Date(current),dailyRequests:1,dailyUnits:30,perUserDailyRequests:1,perUserDailyUnits:30,maxUnitsPerRequest:30});
   try {
@@ -145,7 +149,8 @@ test('new UTC day has separate budget rows',async()=>{
     assert.equal((await ask(a.gate,'user-a',1)).status,429);
     current='2026-11-25T00:00:00.000Z';
     assert.equal((await ask(a.gate,'user-a',30)).allowed,true);
-    assert.equal(a.db.prepare('SELECT COUNT(*) AS n FROM gp_budget_daily_global').get().n,2);
+    assert.equal(a.db.prepare('SELECT COUNT(*) AS n FROM gp_budget_daily_global').get().n,1);
+    assert.equal(a.db.prepare('SELECT day FROM gp_budget_daily_global').get().day,'2026-11-25');
   } finally {a.db.close();}
 });
 
@@ -189,4 +194,41 @@ test('disabled gate never calls the reservation adapter',async()=>{
   const gate=createBudgetGate({...DEFAULTS,enabled:false,reserve:async()=>{called++;return true;}});
   assert.equal((await ask(gate,'user-a',1)).status,503);
   assert.equal(called,0);
+});
+
+test('old daily pseudonymous counters are pruned on first request of a new UTC day',async()=>{
+  let current='2026-11-24T23:59:00.000Z';
+  const a=setup({now:()=>new Date(current)});
+  try {
+    assert.equal((await ask(a.gate,'user-a',10)).allowed,true);
+    assert.equal(a.db.prepare('SELECT COUNT(*) AS n FROM gp_budget_daily_user').get().n,1);
+    current='2026-11-25T00:00:00.000Z';
+    assert.equal((await ask(a.gate,'user-b',10)).allowed,true);
+    assert.equal(a.db.prepare('SELECT COUNT(*) AS n FROM gp_budget_daily_global').get().n,1);
+    assert.equal(a.db.prepare('SELECT COUNT(*) AS n FROM gp_budget_daily_user').get().n,1);
+    assert.equal(a.db.prepare('SELECT last_cleaned_day FROM gp_budget_cleanup_state').get().last_cleaned_day,'2026-11-25');
+  } finally {a.db.close();}
+});
+
+test('retention window can preserve a small number of recent UTC days',async()=>{
+  let current='2026-11-24T09:00:00.000Z';
+  const local=makeStorage();
+  const ledger=makeSqliteBudgetLedger({storage:local.storage,hashUserId,retentionDays:3});
+  const gate=createBudgetGate({reserve:ledger,...DEFAULTS,now:()=>new Date(current)});
+  try {
+    for (const day of ['2026-11-24','2026-11-25','2026-11-26','2026-11-27']) {
+      current=day+'T09:00:00.000Z';
+      assert.equal((await ask(gate,'user-'+day,1)).allowed,true);
+    }
+    const days=local.db.prepare('SELECT day FROM gp_budget_daily_global ORDER BY day').all().map(x=>x.day);
+    assert.deepEqual(days,['2026-11-25','2026-11-26','2026-11-27']);
+  } finally {local.db.close();}
+});
+
+test('invalid retention configuration is rejected',()=>{
+  const a=makeStorage();
+  try {
+    assert.throws(()=>makeSqliteBudgetLedger({storage:a.storage,hashUserId,retentionDays:0}),/retentionDays/);
+    assert.throws(()=>makeSqliteBudgetLedger({storage:a.storage,hashUserId,retentionDays:31}),/retentionDays/);
+  } finally {a.db.close();}
 });
