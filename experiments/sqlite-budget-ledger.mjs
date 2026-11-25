@@ -11,9 +11,11 @@
  *   Route ALL traffic through one stable global budget Durable Object ID.
  *   Compute "units" as a conservative maximum Neuron reservation for the fixed model,
  *   including prompt/input and max output tokens. If that cannot be estimated, deny.
+ *   Deletion is metered as SQLite row writes; include retention cleanup in the write budget.
  */
 const GLOBAL_TABLE = 'gp_budget_daily_global';
 const USER_TABLE = 'gp_budget_daily_user';
+const CLEANUP_TABLE = 'gp_budget_cleanup_state';
 const HASH_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -25,14 +27,22 @@ function validDay(day) {
 function validPositiveInt(value) {
   return Number.isSafeInteger(value) && value > 0;
 }
+function dayBefore(day, days) {
+  const date = new Date(day + 'T00:00:00.000Z');
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
 
-export function makeSqliteBudgetLedger({storage,hashUserId}={}) {
+export function makeSqliteBudgetLedger({storage,hashUserId,retentionDays=1}={}) {
   if (!storage || typeof storage.transactionSync !== 'function' ||
       !storage.sql || typeof storage.sql.exec !== 'function') {
     throw new TypeError('SQLite-backed Durable Object storage with transactionSync is required');
   }
   if (typeof hashUserId !== 'function') {
     throw new TypeError('A server-only user ID HMAC function is required');
+  }
+  if (!Number.isSafeInteger(retentionDays) || retentionDays < 1 || retentionDays > 30) {
+    throw new TypeError('retentionDays must be an integer from 1 to 30');
   }
 
   storage.sql.exec(`
@@ -49,6 +59,12 @@ export function makeSqliteBudgetLedger({storage,hashUserId}={}) {
       used_requests INTEGER NOT NULL CHECK (used_requests >= 0),
       used_neurons INTEGER NOT NULL CHECK (used_neurons >= 0),
       PRIMARY KEY (day, user_hash)
+    )
+  `);
+  storage.sql.exec(`
+    CREATE TABLE IF NOT EXISTS ${CLEANUP_TABLE} (
+      singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+      last_cleaned_day TEXT NOT NULL
     )
   `);
 
@@ -73,8 +89,25 @@ export function makeSqliteBudgetLedger({storage,hashUserId}={}) {
       throw new TypeError('hashUserId must return a 32-128 character base64url digest');
     }
 
-    // This read-check-write sequence is atomic for all callers routed to the same DO.
+    // Cleanup and reserve are atomic for all callers routed to the same DO.
+    // Keep one UTC day by default; only pseudonymous quota counts are retained.
+    // The DELETE statements count as SQLite rows written on Cloudflare.
     return storage.transactionSync(() => {
+      const cleanupRows = storage.sql.exec(
+        `SELECT last_cleaned_day FROM ${CLEANUP_TABLE} WHERE singleton = 1`
+      ).toArray();
+      const lastCleanedDay = cleanupRows[0]?.last_cleaned_day;
+      if (!lastCleanedDay || lastCleanedDay < day) {
+        const cutoff = dayBefore(day, retentionDays - 1);
+        storage.sql.exec(`DELETE FROM ${GLOBAL_TABLE} WHERE day < ?`, cutoff);
+        storage.sql.exec(`DELETE FROM ${USER_TABLE} WHERE day < ?`, cutoff);
+        storage.sql.exec(
+          `INSERT INTO ${CLEANUP_TABLE} (singleton, last_cleaned_day) VALUES (1, ?)
+           ON CONFLICT(singleton) DO UPDATE SET last_cleaned_day = excluded.last_cleaned_day`,
+          day
+        );
+      }
+
       const globalRows = storage.sql.exec(
         `SELECT used_requests, used_neurons FROM ${GLOBAL_TABLE} WHERE day = ?`, day
       ).toArray();
