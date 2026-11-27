@@ -42,19 +42,19 @@ Web API and Plugin/MCP have independent schemas and auth. Draft PR #4 currently 
 
 Based only on the supplied screenshots:
 - GPT name and description visible: `RAWFORGE Global Parents AI`; `英語が苦手な日本人保護者のための国際教育アシスタント`.
-- The Instructions field visibly begins with `Official Instructions V1.0`. The full instruction text has not been provided to the repository.
+- The Instructions field visibly begins with `Official Instructions V1.0`. The owner subsequently uploaded the complete TXT backup in this conversation. Its full 216-line text was read and reviewed on 2026-11-27. The source is private user-provided material and has **not** been committed to this public repository. A separate local migration draft was created; only source inventory/status is recorded here.
 - Four Conversation Starters were visible: teacher email, SLC discussion, PTA English help, and overseas-move preparation.
 - The visible Knowledge panel showed the upload control but no file names. This is not enough to conclude that the full Knowledge list is empty.
 - The Actions panel showed “Add action”; no configured action was visible in the supplied frame.
 - The editor displayed a saved-draft notice. Whether a separate published version exists is unconfirmed.
-- The user performed a Save As operation for a local TXT backup, but the file itself was not uploaded or independently inspected. Successful final save, exact contents and completeness remain unverified.
+- The user uploaded `RAWFORGE Global Parents InstructionV1.backup20261127.txt`; the actual file was read. Its content is 4,434 bytes and ends with stray `sS` characters. The source file itself was not modified; the extra characters were omitted only from the separate migration draft.
 
 No private instruction text, child data, or local files are copied into this public repository.
 
 ## Unavailable source material
 
 Not retrieved or independently inspected:
-- Complete original Instructions and version history
+- Original GPT editor's authoritative published/draft version and full version history (the uploaded Instructions v1.0 backup was read, but its identity against the latest published editor version is not independently verified)
 - Uploaded Knowledge files and their original names/content
 - Actions, OpenAPI schema, authentication and privacy URL (the supplied frame showed “Add action”, but the full editor state was not inspected)
 - Whether a latest published version exists separately from the saved draft
@@ -71,8 +71,9 @@ These are **unknown**, not reconstructed. No inference of account plan, workspac
 | Q01–Q16 evaluation source | Yes |
 | External connector boundaries and permissions | Yes |
 | Screen-level GPT metadata captured | Partial |
-| Complete original Custom GPT source captured | No |
-| Owner's local TXT backup independently verified | No |
+| Instructions v1.0 backup received and read | Yes (private upload; not committed to public GitHub) |
+| Latest published editor version matched to uploaded TXT | No |
+| Knowledge source files and Actions configuration captured | No |
 | Latest published version identified | No |
 | Plugin created | No |
 | Plugin tools connected | No |
