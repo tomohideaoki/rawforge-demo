@@ -7,9 +7,9 @@ Status: **preparation only**. This is not an installed, executable, or verified 
 | Plugin component | Canonical source | Handling |
 |---|---|---|
 | Skill / role, audience, workflow, output order and safety constraints | `docs/portable-school-workflow-v0.1.md` §1 | Use as the shared source. Existing GPT source instructions remain uncollected. |
-| Reference files | `docs/portable-school-workflow-v0.1.md` §2; `docs/translation-connection.md`; `docs/plugin-migration-readiness-20261124.md`; `docs/plugin-migration-readiness-20261125-addendum.md` | Add only approved, non-sensitive files. Each reference records source/version/date. |
+| Reference files | `docs/portable-school-workflow-v0.1.md` §2; `docs/translation-connection.md`; `docs/plugin-migration-readiness-20261124.md`; `docs/plugin-migration-readiness-20261125-addendum.md`; `docs/pr4-contract-drift-20261127.md` | Add only approved, non-sensitive files. Each reference records source/version/date. |
 | Evaluation cases | Q01–Q12: `docs/portable-school-workflow-v0.1.md` §3; Q13–Q16: `docs/plugin-migration-readiness-20261124.md` §4 | Reuse in one shared evaluation set; do not duplicate fixture contents here. |
-| Web API connector | `docs/translation-connection.md` and 2026-11-25 addendum §4 | Draft PR #4 v1 and offline v2 differ. Production contract is unverified. |
+| Web API connector | `docs/translation-connection.md` and `docs/pr4-contract-drift-20261127.md` | Draft PR #4 v1 and offline v2 differ. PR #4 checks consent in the browser but omits it from the POST body. Production contract is unverified. |
 | Plugin / MCP connector | 2026-11-24 readiness §5 and 2026-11-25 addendum §6 | Separate adapter. No email, school records, or file-system permissions. Not implemented. |
 
 ## Portable skill mapping
@@ -36,18 +36,31 @@ Status: **preparation only**. This is not an installed, executable, or verified 
 
 If an API adapter is later required, the minimum request is `text`, a constrained tone value and explicit `consent=true`; the server derives the authenticated identity. Do not trust a client-supplied plan/user ID. The response must contain `english`, `japaneseBackTranslation` and an explicit clarification state. API errors must fail closed. Do not include school email access, automatic sending, mailbox reading, attachment access, child-record lookup, or file-exploration permissions.
 
-Web API and Plugin/MCP have independent schemas and auth. Draft PR #4's legacy v1 contract is not proven compatible with the later offline v2 contract or the live Worker. Custom GPT Actions do not automatically transfer; any replacement connector must be rebuilt and independently tested.
+Web API and Plugin/MCP have independent schemas and auth. Draft PR #4 currently includes a consent checkbox but sends only `{text}`; the later offline v2 gate requires `{text, consent:true}`. The live Worker is unverified. Custom GPT Actions do not automatically transfer; any replacement connector must be rebuilt and independently tested.
+
+## Owner screen review — 2026-11-27
+
+Based only on the supplied screenshots:
+- GPT name and description visible: `RAWFORGE Global Parents AI`; `英語が苦手な日本人保護者のための国際教育アシスタント`.
+- The Instructions field visibly begins with `Official Instructions V1.0`. The full instruction text has not been provided to the repository.
+- Four Conversation Starters were visible: teacher email, SLC discussion, PTA English help, and overseas-move preparation.
+- The visible Knowledge panel showed the upload control but no file names. This is not enough to conclude that the full Knowledge list is empty.
+- The Actions panel showed “Add action”; no configured action was visible in the supplied frame.
+- The editor displayed a saved-draft notice. Whether a separate published version exists is unconfirmed.
+- The user performed a Save As operation for a local TXT backup, but the file itself was not uploaded or independently inspected. Successful final save, exact contents and completeness remain unverified.
+
+No private instruction text, child data, or local files are copied into this public repository.
 
 ## Unavailable source material
 
-Not retrieved from the owner’s Custom GPT editor:
-- Original Instructions and version history
-- Conversation Starters
-- Uploaded Knowledge files and their original names
-- Actions, OpenAPI schema, authentication and privacy URL
-- Current published/draft version and in-product migration availability
+Not retrieved or independently inspected:
+- Complete original Instructions and version history
+- Uploaded Knowledge files and their original names/content
+- Actions, OpenAPI schema, authentication and privacy URL (the supplied frame showed “Add action”, but the full editor state was not inspected)
+- Whether a latest published version exists separately from the saved draft
+- In-product migration availability for the owner's account/workspace
 
-These are **unknown**, not reconstructed. No inference of ownership/plan/workspace capability or migration compatibility is made.
+These are **unknown**, not reconstructed. No inference of account plan, workspace eligibility, or migration compatibility is made.
 
 ## Migration state
 
@@ -57,11 +70,16 @@ These are **unknown**, not reconstructed. No inference of ownership/plan/workspa
 | Reference/version register | Yes |
 | Q01–Q16 evaluation source | Yes |
 | External connector boundaries and permissions | Yes |
-| Original Custom GPT source captured | No |
+| Screen-level GPT metadata captured | Partial |
+| Complete original Custom GPT source captured | No |
+| Owner's local TXT backup independently verified | No |
+| Latest published version identified | No |
 | Plugin created | No |
 | Plugin tools connected | No |
 | Plugin evaluation executed | No |
 | Account-specific migration eligibility confirmed | No |
 | Original GPT switched/read-only | No |
+
+OpenAI's current migration FAQ says migration uses the latest **published** GPT version; drafts and unpublished edits do not transfer. Publishing does not require public sharing. The individual plugin starts private, and custom actions do not transfer automatically. The standard retirement date is 2026-12-11; follow the actual in-product notice for this account/workspace. Do not publish, migrate, or switch this GPT as part of preparation.
 
 Preserve the original GPT and all sources until a replacement has been verified. Do not migrate or switch as part of this preparation.
